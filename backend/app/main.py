@@ -9,8 +9,11 @@ from __future__ import annotations
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from pathlib import Path
+
+from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from sqlalchemy import text
 
 from app.api.v1.endpoints import health
@@ -76,3 +79,26 @@ app.add_middleware(
 
 app.include_router(health.router)
 app.include_router(api_router, prefix="/api/v1")
+
+# Serve the self-contained UI at the root so the service is reachable at "/"
+# even when hosted standalone (e.g. a single serverless deployment). In the
+# normal production setup the SPA is served by Nginx and this is just a fallback.
+_STATIC_DIR = Path(__file__).resolve().parent / "static"
+
+
+@app.get("/", include_in_schema=False)
+async def index():
+    index_file = _STATIC_DIR / "index.html"
+    if index_file.is_file():
+        return FileResponse(index_file, media_type="text/html; charset=utf-8")
+    return {
+        "service": settings.APP_NAME,
+        "version": settings.APP_VERSION,
+        "docs": "/api/docs",
+        "health": "/health",
+    }
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return Response(status_code=204)

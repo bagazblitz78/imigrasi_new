@@ -100,6 +100,10 @@ Catatan: `vercel.json` berisi `"builds": [{ "src": "index.html",
 "use": "@vercel/static" }]`, jadi Vercel hanya men-deploy `index.html` secara
 statis — tanpa build, tanpa server.
 
+Fallback: backend juga melayani UI demo di `GET /` (file
+`backend/app/static/index.html`), sehingga kalaupun Vercel malah menjalankan
+API backend, membuka `/` tetap menampilkan aplikasi (bukan 404 JSON).
+
 Ingin UI React asli (bukan demo)? Set Root Directory ke `frontend`, Framework
 `Vite`. Tapi aplikasi akan gagal memuat data karena tidak ada API/database —
 host backend terpisah (lihat [DEPLOY.md](DEPLOY.md)) dan set `VITE_API_BASE`.
