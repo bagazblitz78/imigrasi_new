@@ -87,22 +87,28 @@ memaksa deploy **statis** saja (mengabaikan deteksi Python), sehingga URL Vercel
 langsung menampilkan aplikasi.
 
 Langkah:
-1. Commit & push `index.html` dan `vercel.json` ke GitHub.
-2. Di Vercel → Project → **Settings → General → Root Directory**: pastikan
-   diarahkan ke **root repo** (`.`) — **bukan** `backend`. Ini penyebab error
-   `{"error":{"code":"not_found",...}}` (Vercel menjalankan API backend, yang
-   tidak punya route `/`).
-3. **Framework Preset**: `Other` (tanpa build command). Build Command & Output
-   Directory dibiarkan kosong.
-4. **Redeploy**.
+1. Commit & push `index.html` + `vercel.json` ke GitHub.
+2. Di Vercel → Project → **Settings → General**:
+   - **Root Directory**: biarkan **root repo** (`.`) — **bukan** `backend`.
+   - **Framework Preset**: `Other`.
+   - **Build Command** & **Output Directory**: **kosongkan** (kalau ada nilai
+     lama seperti `frontend/dist`, hapus). Nilai akan diambil dari `vercel.json`.
+3. **Redeploy**.
 
-Catatan: `vercel.json` berisi `"builds": [{ "src": "index.html",
-"use": "@vercel/static" }]`, jadi Vercel hanya men-deploy `index.html` secara
-statis — tanpa build, tanpa server.
+`vercel.json` sengaja eksplisit supaya Vercel tidak salah deteksi:
+```json
+{
+  "buildCommand": "mkdir -p dist && cp index.html dist/index.html",
+  "outputDirectory": "dist",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}
+```
+Artinya: Vercel menyalin `index.html` ke `dist/` lalu menyajikannya di `/`
+(tanpa serverless/Python). Semua path diarahkan ke `index.html`.
 
 Fallback: backend juga melayani UI demo di `GET /` (file
-`backend/app/static/index.html`), sehingga kalaupun Vercel malah menjalankan
-API backend, membuka `/` tetap menampilkan aplikasi (bukan 404 JSON).
+`backend/app/static/index.html`), sehingga kalaupun Vercel malah menjalankan API
+backend, membuka `/` tetap menampilkan aplikasi (bukan 404 JSON).
 
 Ingin UI React asli (bukan demo)? Set Root Directory ke `frontend`, Framework
 `Vite`. Tapi aplikasi akan gagal memuat data karena tidak ada API/database —
