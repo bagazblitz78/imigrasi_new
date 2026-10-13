@@ -25,3 +25,7 @@ frontend/.vite/
 # OS / logs
 *.log
 .DS_Store
+
+.vercel
+.env*
+!.env.example
