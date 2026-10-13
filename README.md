@@ -82,12 +82,12 @@ notifikasi, audit log). Akan ada badge **MODE DEMO** di header.
 Vercel **tidak** cocok untuk backend (tanpa database persisten, tanpa SSE jangka
 panjang). Yang benar di-deploy ke Vercel adalah **UI statis**.
 
-Repo ini sudah menyiapkan `index.html` (demo mandiri) + `vercel.json` yang
+Repo ini sudah menyiapkan `public/index.html` (demo mandiri) + `vercel.json` yang
 memaksa deploy **statis** saja (mengabaikan deteksi Python), sehingga URL Vercel
 langsung menampilkan aplikasi.
 
 Langkah:
-1. Commit & push `index.html` + `vercel.json` ke GitHub.
+1. Commit & push `public/index.html` + `vercel.json` ke GitHub.
 2. Di Vercel → Project → **Settings → General**:
    - **Root Directory**: biarkan **root repo** (`.`) — **bukan** `backend`.
    - **Framework Preset**: `Other`.
@@ -98,13 +98,13 @@ Langkah:
 `vercel.json` sengaja eksplisit supaya Vercel tidak salah deteksi:
 ```json
 {
-  "buildCommand": "mkdir -p dist && cp index.html dist/index.html",
-  "outputDirectory": "dist",
+  "framework": null,
+  "outputDirectory": "public",
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }
 ```
-Artinya: Vercel menyalin `index.html` ke `dist/` lalu menyajikannya di `/`
-(tanpa serverless/Python). Semua path diarahkan ke `index.html`.
+Artinya: Vercel menyajikan isi folder `public/` sebagai statis di `/`
+(tanpa serverless/Python), dan semua path diarahkan ke `index.html`.
 
 Fallback: backend juga melayani UI demo di `GET /` (file
 `backend/app/static/index.html`), sehingga kalaupun Vercel malah menjalankan API

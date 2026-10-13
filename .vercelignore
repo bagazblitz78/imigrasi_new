@@ -1,5 +1,0 @@
-# Only the static demo is deployed to Vercel (keeps the build output minimal and
-# prevents Vercel from trying to build the Python backend / React app).
-*
-!index.html
-!vercel.json
