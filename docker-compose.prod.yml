@@ -1,0 +1,141 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# PRODUCTION compose.
+#
+#   Internet -> nginx (frontend image, TLS here) -> backend -> MariaDB
+#
+# Backend runs from an immutable, versioned image (no source mounts). All secrets
+# and environment-specific values are injected at runtime from .env.
+#
+# Deploy:
+#   1. Configure server + .env (see .env.example)
+#   2. docker compose -f docker-compose.prod.yml pull        (or build)
+#   3. docker compose -f docker-compose.prod.yml run --rm migrate
+#   4. docker compose -f docker-compose.prod.yml up -d
+# ─────────────────────────────────────────────────────────────────────────────
+services:
+  db:
+    image: mariadb:11.4
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD is required}
+      MARIADB_DATABASE: ${DB_NAME:-imigrasi_db}
+      MARIADB_USER: ${DB_USER:-imigrasi_user}
+      MARIADB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    # No published ports: the database is reachable only on the internal network.
+
+  migrate:
+    image: ${BACKEND_IMAGE:-imigrasi-backend:2.0.0}
+    build:
+      context: ./backend
+      args:
+        APP_VERSION: ${APP_VERSION:-2.0.0}
+        GIT_SHA: ${GIT_SHA:-unknown}
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      APP_ENV: production
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_NAME: ${DB_NAME:-imigrasi_db}
+      DB_USER: ${DB_USER:-imigrasi_user}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:?ALLOWED_ORIGINS is required}
+      COOKIE_SECURE: "true"
+    networks:
+      - internal
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  backend:
+    image: ${BACKEND_IMAGE:-imigrasi-backend:2.0.0}
+    build:
+      context: ./backend
+      args:
+        APP_VERSION: ${APP_VERSION:-2.0.0}
+        GIT_SHA: ${GIT_SHA:-unknown}
+    restart: unless-stopped
+    environment:
+      APP_ENV: production
+      APP_VERSION: ${APP_VERSION:-2.0.0}
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_NAME: ${DB_NAME:-imigrasi_db}
+      DB_USER: ${DB_USER:-imigrasi_user}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      JWT_ISSUER: ${JWT_ISSUER:-imigrasi-api}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-imigrasi-web}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-15}
+      REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-1}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:?ALLOWED_ORIGINS is required}
+      COOKIE_SECURE: "true"
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
+      LOGIN_MAX_ATTEMPTS: ${LOGIN_MAX_ATTEMPTS:-5}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      LOG_FORMAT: ${LOG_FORMAT:-json}
+      SSE_ENABLED: ${SSE_ENABLED:-true}
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
+    networks:
+      - internal
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health/ready').status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1500M
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+  nginx:
+    image: ${FRONTEND_IMAGE:-imigrasi-frontend:2.0.0}
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    ports:
+      - "80:8080"
+      # - "443:8443"   # enable when TLS is terminated here
+    networks:
+      - internal
+      - public
+    depends_on:
+      backend:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /var/cache/nginx
+      - /var/run
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  public:
+  internal:
+    internal: true
+
+volumes:
+  db_data:

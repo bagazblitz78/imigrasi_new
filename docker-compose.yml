@@ -1,0 +1,69 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# DEVELOPMENT compose — hot reload + source mounts.
+# For production use docker-compose.prod.yml (immutable images, no source mounts).
+# ─────────────────────────────────────────────────────────────────────────────
+services:
+  db:
+    image: mariadb:11.4
+    container_name: imigrasi_db_dev
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-devroot}
+      MARIADB_DATABASE: ${DB_NAME:-imigrasi_db}
+      MARIADB_USER: ${DB_USER:-imigrasi_user}
+      MARIADB_PASSWORD: ${DB_PASSWORD:-devpassword}
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data_dev:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      args:
+        APP_VERSION: dev
+    container_name: imigrasi_backend_dev
+    restart: unless-stopped
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    environment:
+      APP_ENV: development
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_NAME: ${DB_NAME:-imigrasi_db}
+      DB_USER: ${DB_USER:-imigrasi_user}
+      DB_PASSWORD: ${DB_PASSWORD:-devpassword}
+      JWT_SECRET: ${JWT_SECRET:-dev-only-insecure-secret-not-for-production}
+      ALLOWED_ORIGINS: '["http://localhost:5173"]'
+      COOKIE_SECURE: "false"
+      LOG_LEVEL: DEBUG
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    image: node:20-alpine
+    container_name: imigrasi_frontend_dev
+    working_dir: /app
+    command: sh -c "npm install --no-audit --no-fund && npm run dev -- --host 0.0.0.0"
+    environment:
+      VITE_API_BASE: /imigrasi/api/v1
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+    depends_on:
+      - backend
+
+volumes:
+  db_data_dev:

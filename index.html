@@ -1,0 +1,837 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="color-scheme" content="light" />
+<title>Sistem Imigrasi Bandara — Demo Statis</title>
+<style>
+:root{
+  --color-primary:#b91c1c;--color-primary-hover:#991b1b;--color-primary-soft:#fef2f2;
+  --color-navy:#0f172a;--bg-app:#f1f5f9;--surface:#fff;--surface-muted:#f8fafc;--surface-sunken:#f1f5f9;
+  --border:#e2e8f0;--border-strong:#cbd5e1;--text:#0f172a;--text-muted:#64748b;--text-subtle:#94a3b8;--text-inverse:#f8fafc;
+  --success:#15803d;--success-soft:#f0fdf4;--warning:#b45309;--warning-soft:#fffbeb;--danger:#b91c1c;--danger-soft:#fef2f2;
+  --info:#1d4ed8;--info-soft:#eff6ff;--pending:#b45309;--hold:#dc2626;--approved:#15803d;--rejected:#475569;--deported:#6d28d9;
+  --sidebar-width:264px;--sidebar-width-collapsed:76px;--topbar-height:64px;
+  --radius-sm:6px;--radius:10px;--radius-lg:14px;--radius-pill:999px;
+  --shadow-sm:0 1px 2px rgba(15,23,42,.06);--shadow:0 4px 14px rgba(15,23,42,.08);--shadow-lg:0 18px 48px rgba(15,23,42,.18);
+  --font-sans:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-mono:"SFMono-Regular",ui-monospace,Consolas,monospace;
+  --focus-ring:0 0 0 3px rgba(185,28,28,.28);
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body,#root{height:100%}
+body{margin:0;font-family:var(--font-sans);font-size:14px;line-height:1.5;color:var(--text);background:var(--bg-app);-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4,p{margin:0}
+:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px;border-radius:var(--radius-sm)}
+.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.mono{font-family:var(--font-mono);font-size:.92em}
+.app-shell{display:flex;min-height:100vh}
+/* Sidebar */
+.sidebar{position:fixed;inset:0 auto 0 0;width:var(--sidebar-width);background:var(--color-navy);color:var(--text-inverse);display:flex;flex-direction:column;z-index:100;transition:width .18s ease,transform .2s ease}
+.sidebar--collapsed{width:var(--sidebar-width-collapsed)}
+.sidebar__brand{display:flex;align-items:center;gap:12px;padding:18px;border-bottom:1px solid rgba(255,255,255,.08);min-height:var(--topbar-height)}
+.sidebar__brand-mark{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,var(--color-primary),#7f1d1d);display:grid;place-items:center;font-size:18px;flex-shrink:0}
+.sidebar__brand-text strong{display:block;font-size:13px;letter-spacing:.08em}
+.sidebar__brand-text span{font-size:10.5px;letter-spacing:.14em;color:#94a3b8}
+.sidebar__user{padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sidebar__user-name{font-size:13.5px;font-weight:600;color:#f8fafc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar__nav{flex:1;overflow-y:auto;padding:12px 10px;display:flex;flex-direction:column;gap:2px}
+.sidebar__section{font-size:10px;letter-spacing:.14em;color:#64748b;padding:14px 12px 6px;text-transform:uppercase}
+.nav-link{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--radius);color:#cbd5e1;font-size:13.5px;font-weight:500;white-space:nowrap;cursor:pointer;transition:background .14s,color .14s;border:none;background:none;width:100%;text-align:left;font-family:inherit}
+.nav-link:hover{background:rgba(255,255,255,.06);color:#fff}
+.nav-link.is-active{background:rgba(185,28,28,.24);color:#fff;box-shadow:inset 3px 0 0 var(--color-primary)}
+.nav-link__icon{width:20px;text-align:center;flex-shrink:0;font-size:15px}
+.nav-link__label{flex:1}
+.nav-link__badge{background:var(--color-primary);color:#fff;font-size:10.5px;font-weight:700;border-radius:var(--radius-pill);padding:1px 7px}
+.sidebar__footer{padding:12px;border-top:1px solid rgba(255,255,255,.08)}
+.sidebar--collapsed .sidebar__brand-text,.sidebar--collapsed .sidebar__user,.sidebar--collapsed .nav-link__label,.sidebar--collapsed .sidebar__section{display:none}
+.sidebar--collapsed .nav-link{justify-content:center}
+.sidebar__scrim{position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:99}
+.main{flex:1;margin-left:var(--sidebar-width);min-width:0;display:flex;flex-direction:column;transition:margin-left .18s ease}
+.main--collapsed{margin-left:var(--sidebar-width-collapsed)}
+/* Topbar */
+.topbar{position:sticky;top:0;z-index:90;height:var(--topbar-height);background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:16px;padding:0 24px}
+.topbar__title{font-size:15px;font-weight:600}
+.topbar__subtitle{font-size:12px;color:var(--text-muted)}
+.topbar__spacer{flex:1}
+.icon-btn{width:38px;height:38px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);color:var(--text-muted);cursor:pointer;display:grid;place-items:center;font-size:16px;position:relative;transition:border-color .14s,color .14s}
+.icon-btn:hover{border-color:var(--border-strong);color:var(--text)}
+.content{padding:26px 28px 60px;max-width:1440px;width:100%;margin:0 auto}
+/* Page header */
+.page-header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+.page-header h1{font-size:22px;font-weight:700;letter-spacing:-.01em}
+.page-header p{color:var(--text-muted);font-size:13.5px;margin-top:4px}
+.page-header__actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid transparent;border-radius:var(--radius);padding:9px 16px;font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer;transition:background .14s,border-color .14s,color .14s,opacity .14s;white-space:nowrap}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.btn--primary{background:var(--color-primary);color:#fff}.btn--primary:not(:disabled):hover{background:var(--color-primary-hover)}
+.btn--success{background:var(--success);color:#fff}.btn--success:not(:disabled):hover{background:#166534}
+.btn--danger{background:var(--danger);color:#fff}.btn--danger:not(:disabled):hover{background:#991b1b}
+.btn--warning{background:var(--warning);color:#fff}
+.btn--secondary{background:var(--surface);border-color:var(--border-strong);color:var(--text)}.btn--secondary:not(:disabled):hover{background:var(--surface-muted)}
+.btn--ghost{background:transparent;border-color:var(--border);color:var(--text-muted)}.btn--ghost:not(:disabled):hover{background:var(--surface-muted);color:var(--text)}
+.btn--sm{padding:6px 12px;font-size:12.5px}.btn--block{width:100%}
+/* Forms */
+.field{margin-bottom:16px}
+.field__label{display:block;font-size:12.5px;font-weight:600;color:var(--text-muted);margin-bottom:6px}
+.field__label .req{color:var(--danger);margin-left:2px}
+.field__hint{font-size:11.5px;color:var(--text-subtle);margin-top:5px}
+.field__error{font-size:11.5px;color:var(--danger);margin-top:5px}
+.input,.select,.textarea{width:100%;background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius);padding:9px 12px;font-family:inherit;font-size:13.5px;color:var(--text);transition:border-color .14s,box-shadow .14s}
+.input:focus,.select:focus,.textarea:focus{outline:none;border-color:var(--color-primary);box-shadow:var(--focus-ring)}
+.textarea{min-height:88px;resize:vertical}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+.form-grid .span-2{grid-column:1/-1}
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.card--pad{padding:22px}
+.card__header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 20px;border-bottom:1px solid var(--border)}
+.card__title{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted)}
+.card__body{padding:20px}
+.grid{display:grid;gap:16px}
+.grid--2{grid-template-columns:repeat(2,1fr)}
+.grid--3{grid-template-columns:repeat(3,1fr)}
+.grid--stats{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+/* Stat */
+.stat{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--color-primary);border-radius:var(--radius-lg);padding:18px 20px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.stat__label{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px}
+.stat__value{font-size:28px;font-weight:700;line-height:1.1;letter-spacing:-.02em}
+.stat__sub{font-size:12px;color:var(--text-subtle);margin-top:4px}
+.stat__icon{font-size:22px;opacity:.55}
+/* Badges */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:var(--radius-pill);font-size:11.5px;font-weight:700;border:1px solid transparent;white-space:nowrap}
+.badge--pending{color:var(--pending);background:var(--warning-soft);border-color:#fde68a}
+.badge--approved{color:var(--approved);background:var(--success-soft);border-color:#bbf7d0}
+.badge--hold{color:var(--hold);background:var(--danger-soft);border-color:#fecaca}
+.badge--deported{color:var(--deported);background:#f5f3ff;border-color:#ddd6fe}
+.badge--rejected{color:var(--rejected);background:var(--surface-sunken);border-color:var(--border)}
+.badge--neutral{color:var(--text-muted);background:var(--surface-sunken);border-color:var(--border)}
+.badge--role-agent{color:#b45309;background:var(--warning-soft);border-color:#fde68a}
+.badge--role-supervisor{color:#1d4ed8;background:var(--info-soft);border-color:#bfdbfe}
+.badge--role-admin{color:var(--success);background:var(--success-soft);border-color:#bbf7d0}
+/* Alerts */
+.alert{display:flex;gap:10px;align-items:flex-start;padding:11px 14px;border-radius:var(--radius);font-size:13px;border:1px solid transparent;margin-bottom:16px}
+.alert--error{color:var(--danger);background:var(--danger-soft);border-color:#fecaca}
+.alert--success{color:var(--success);background:var(--success-soft);border-color:#bbf7d0}
+.alert--warning{color:var(--warning);background:var(--warning-soft);border-color:#fde68a}
+.alert--info{color:var(--info);background:var(--info-soft);border-color:#bfdbfe}
+/* Table */
+.table-wrap{overflow-x:auto}
+.table{width:100%;border-collapse:collapse;font-size:13px}
+.table th{text-align:left;padding:11px 16px;font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-muted);background:var(--surface-muted);border-bottom:1px solid var(--border);white-space:nowrap}
+.table td{padding:12px 16px;border-bottom:1px solid var(--border);vertical-align:middle}
+.table tbody tr:hover{background:var(--surface-muted)}
+.table tbody tr:last-child td{border-bottom:none}
+/* Pagination */
+.pagination{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-top:1px solid var(--border);flex-wrap:wrap}
+.pagination__info{font-size:12.5px;color:var(--text-muted)}
+.pagination__controls{display:flex;gap:8px;align-items:center}
+/* States */
+.state{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:56px 24px;gap:8px}
+.state__icon{font-size:34px;opacity:.5}.state__title{font-size:15px;font-weight:600}
+.state__text{font-size:13px;color:var(--text-muted);max-width:420px}
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:400;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .14s ease}
+.modal{background:var(--surface);border-radius:var(--radius-lg);width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:var(--shadow-lg);animation:popIn .16s ease}
+.modal--sm{max-width:420px}.modal--md{max-width:560px}.modal--lg{max-width:760px}
+.modal__header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 22px;border-bottom:1px solid var(--border)}
+.modal__title{font-size:16px;font-weight:700}.modal__desc{font-size:13px;color:var(--text-muted);margin-top:3px}
+.modal__close{background:none;border:none;font-size:22px;line-height:1;color:var(--text-muted);cursor:pointer;padding:0 4px}
+.modal__body{padding:22px;overflow-y:auto}.modal__footer{display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--border)}
+@keyframes fadeIn{from{opacity:0}}@keyframes popIn{from{opacity:0;transform:translateY(8px) scale(.99)}}
+/* Login */
+.login{min-height:100vh;display:grid;grid-template-columns:1.05fr 1fr;background:var(--color-navy)}
+.login__aside{padding:56px;color:#e2e8f0;display:flex;flex-direction:column;justify-content:space-between;background:radial-gradient(circle at 20% 20%,rgba(185,28,28,.35),transparent 55%),var(--color-navy)}
+.login__brand{display:flex;align-items:center;gap:14px}
+.login__brand-mark{width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,var(--color-primary),#7f1d1d);display:grid;place-items:center;font-size:22px}
+.login__headline{font-size:32px;font-weight:700;line-height:1.2;letter-spacing:-.02em;max-width:440px}
+.login__lead{color:#94a3b8;margin-top:14px;max-width:400px}
+.login__points{list-style:none;padding:0;margin:26px 0 0;display:grid;gap:10px}
+.login__points li{display:flex;gap:10px;align-items:center;color:#cbd5e1;font-size:13.5px}
+.login__panel{background:var(--bg-app);display:flex;align-items:center;justify-content:center;padding:32px}
+.login__card{width:100%;max-width:400px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:32px;box-shadow:var(--shadow)}
+.login__title{font-size:19px;font-weight:700;margin-bottom:4px}.login__subtitle{font-size:13px;color:var(--text-muted);margin-bottom:22px}
+.login__quick{display:flex;gap:8px;margin-top:18px}
+.login__quick .btn{flex:1;font-size:12px;padding:7px 8px}
+.login__footer{text-align:center;font-size:12px;color:var(--text-subtle);margin-top:18px}
+/* Scanner / result */
+.result-banner{border-radius:var(--radius);padding:18px;border:2px solid;margin-bottom:18px}
+.result-banner--clear{border-color:var(--success);background:var(--success-soft)}
+.result-banner--hit{border-color:var(--danger);background:var(--danger-soft)}
+.result-banner__title{font-size:16px;font-weight:700;margin-bottom:2px}
+.data-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.data-item{background:var(--surface-muted);border:1px solid var(--border);border-radius:var(--radius);padding:10px 13px}
+.data-item__label{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--text-subtle);margin-bottom:3px}
+.data-item__value{font-size:13.5px;font-weight:600}
+.scanner-video{position:relative;background:#0b1220;border-radius:var(--radius);overflow:hidden;min-height:200px;display:grid;place-items:center;color:#94a3b8}
+.scanner-guide{position:absolute;left:6%;right:6%;bottom:12%;height:20%;border:2px dashed var(--color-primary);border-radius:var(--radius-sm)}
+/* Filters */
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.toolbar .input,.toolbar .select{width:auto;min-width:160px}
+.segmented{display:inline-flex;gap:4px;padding:3px;background:var(--surface-sunken);border:1px solid var(--border);border-radius:var(--radius-pill);flex-wrap:wrap}
+.segmented button{border:none;background:transparent;padding:6px 14px;border-radius:var(--radius-pill);font-family:inherit;font-size:12.5px;font-weight:600;color:var(--text-muted);cursor:pointer}
+.segmented button.is-active{background:var(--surface);color:var(--color-primary);box-shadow:var(--shadow-sm)}
+/* Notifications */
+.notif-panel{position:absolute;right:0;top:calc(100% + 8px);width:360px;max-width:calc(100vw - 32px);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);z-index:300;overflow:hidden}
+.notif-panel__header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border);font-weight:600;font-size:13.5px}
+.notif-panel__list{max-height:340px;overflow-y:auto}
+.notif-item{padding:12px 16px;border-bottom:1px solid var(--border);display:block;width:100%;text-align:left;background:none;border-left:3px solid transparent;cursor:pointer}
+.notif-item:hover{background:var(--surface-muted)}
+.notif-item--unread{background:var(--info-soft)}
+.notif-item--danger{border-left-color:var(--danger)}
+.notif-item--info{border-left-color:var(--info)}
+.notif-item__title{font-size:13px;font-weight:600}.notif-item__msg{font-size:12.5px;color:var(--text-muted);margin-top:2px}.notif-item__time{font-size:11px;color:var(--text-subtle);margin-top:4px}
+.notif-dot{position:absolute;top:5px;right:5px;min-width:17px;height:17px;padding:0 4px;border-radius:var(--radius-pill);background:var(--color-primary);color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center}
+.connection-status{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-subtle)}
+.connection-status__dot{width:8px;height:8px;border-radius:50%;background:var(--success)}
+/* Toasts */
+.toast-stack{position:fixed;bottom:22px;right:22px;z-index:500;display:flex;flex-direction:column;gap:10px;max-width:360px}
+.toast{background:var(--color-navy);color:#f8fafc;border-radius:var(--radius);padding:12px 16px;box-shadow:var(--shadow-lg);font-size:13px;border-left:3px solid var(--info);animation:slideIn .2s ease}
+.toast--danger{border-left-color:var(--danger)}.toast--success{border-left-color:var(--success)}.toast--warning{border-left-color:var(--warning)}
+@keyframes slideIn{from{opacity:0;transform:translateY(10px)}}
+/* Misc */
+.activity-item{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--border)}
+.activity-item:last-child{border-bottom:none}
+.activity-item__icon{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--surface-sunken);flex-shrink:0;font-size:14px}
+.activity-item__title{font-size:13px;font-weight:600}.activity-item__meta{font-size:11.5px;color:var(--text-subtle)}
+.callout{display:flex;gap:12px;align-items:center;padding:14px 18px;border-radius:var(--radius);font-size:13.5px;border:1px solid}
+.callout--danger{background:var(--danger-soft);border-color:#fecaca;color:var(--danger);font-weight:600}
+.callout--warning{background:var(--warning-soft);border-color:#fde68a;color:var(--warning)}
+.detail-list{display:grid;gap:0}
+.detail-row{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px}
+.detail-row:last-child{border-bottom:none}
+.detail-row dt{color:var(--text-muted)}.detail-row dd{margin:0;font-weight:600;text-align:right}
+.muted{color:var(--text-muted)}.subtle{color:var(--text-subtle)}
+.text-danger{color:var(--danger)}.text-success{color:var(--success)}.nowrap{white-space:nowrap}
+.row{display:flex;gap:10px;align-items:center}.row--between{justify-content:space-between}
+.stack{display:flex;flex-direction:column;gap:16px}
+@media(max-width:1080px){.grid--4{grid-template-columns:repeat(2,1fr)}.login{grid-template-columns:1fr}.login__aside{display:none}}
+@media(max-width:860px){.sidebar{transform:translateX(-100%)}.sidebar.is-open{transform:translateX(0);box-shadow:var(--shadow-lg)}.main,.main--collapsed{margin-left:0}.grid--2,.grid--3{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.data-grid{grid-template-columns:1fr}.content{padding:18px 16px 60px}.topbar{padding:0 14px}}
+@media(max-width:560px){.notif-panel{position:fixed;left:12px;right:12px;top:auto;bottom:12px;width:auto}}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;transition-duration:.001ms!important}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div id="modal-root"></div>
+<div id="toast-root" class="toast-stack" aria-live="polite"></div>
+<script>
+/* ─────────────────────────────────────────────────────────────────────────
+   DEMO STATIS — Sistem Imigrasi Bandara
+   Satu file, tanpa build, tanpa backend/database. Data contoh di memori.
+   Buka langsung di browser (dobel-klik file ini).
+   ───────────────────────────────────────────────────────────────────────── */
+(function () {
+"use strict";
+
+/* ── Utils ── */
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const MIN = 60000, HOUR = 3600000, DAY = 86400000;
+const NOW = Date.now();
+const iso = (msAgo) => new Date(NOW - msAgo).toISOString();
+const fmtDateTime = (v) => (v ? new Date(v).toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" }) : "—");
+const fmtDate = (v) => (v ? new Date(v).toLocaleDateString("id-ID", { dateStyle: "medium" }) : "—");
+const fmtTime = (v) => (v ? new Date(v).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "—");
+function relTime(v) {
+  if (!v) return "—";
+  const m = Math.round((Date.now() - new Date(v).getTime()) / MIN);
+  if (m < 1) return "baru saja";
+  if (m < 60) return m + " menit lalu";
+  const h = Math.round(m / 60);
+  if (h < 24) return h + " jam lalu";
+  return Math.round(h / 24) + " hari lalu";
+}
+const maskPassport = (v) => (!v ? "—" : v.length <= 5 ? v[0] + "*".repeat(v.length - 1) : v.slice(0, 4) + "*".repeat(v.length - 6) + v.slice(-2));
+
+/* ── Labels ── */
+const PASS = { pending: ["Menunggu", "pending"], approved: ["Diizinkan", "approved"], hold: ["Ditahan", "hold"], deported: ["Deportasi", "deported"], rejected: ["Ditolak", "rejected"] };
+const DIR = { arrival: "Kedatangan", departure: "Keberangkatan" };
+const ROLE = { agent: "Petugas", supervisor: "Supervisor", admin: "Administrator" };
+const CS = { active: ["Aktif", "approved"], break: ["Istirahat", "pending"], inactive: ["Nonaktif", "neutral"] };
+const DEC = { pending: ["Menunggu", "pending"], approved: ["Diloloskan", "approved"], deported: ["Deportasi", "deported"], rejected: ["Ditolak", "rejected"] };
+const VS = { pending: ["Menunggu", "pending"], approved: ["Disetujui", "approved"], rejected: ["Ditolak", "rejected"] };
+const BTYPE = { passport: "Paspor", name: "Nama", both: "Keduanya" };
+const badge = (map, key) => { const m = map[key] || [key || "—", "neutral"]; return `<span class="badge badge--${m[1]}">${esc(m[0])}</span>`; };
+const roleBadge = (r) => `<span class="badge badge--role-${r}">${ROLE[r] || r}</span>`;
+
+/* ── Data ── */
+const state = {
+  currentUserId: null,
+  collapsed: false,
+  mobileOpen: false,
+  userMenu: false,
+  bell: false,
+  page: "dashboard",
+  ui: { page: 1, search: "", status: "", direction: "", decisionFilter: "pending", voaFilter: "pending", actionFilter: "" },
+  seq: { passenger: 100, esc: 50, voa: 20, bl: 3, notif: 100, audit: 500, user: 5, counter: 4 },
+  users: [
+    { id: 1, username: "admin", email: "admin@imigrasi.go.id", full_name: "Administrator Pusdatin", role: "admin", is_active: true, counter_id: null, created_at: iso(300 * DAY) },
+    { id: 2, username: "supervisor1", email: "spv1@imigrasi.go.id", full_name: "Kepala Regu Budi", role: "supervisor", is_active: true, counter_id: null, created_at: iso(290 * DAY) },
+    { id: 3, username: "agent1", email: "agent1@imigrasi.go.id", full_name: "Petugas Andi", role: "agent", is_active: true, counter_id: 1, created_at: iso(200 * DAY) },
+    { id: 4, username: "agent2", email: "agent2@imigrasi.go.id", full_name: "Petugas Sari", role: "agent", is_active: true, counter_id: 2, created_at: iso(180 * DAY) },
+    { id: 5, username: "agent3", email: "agent3@imigrasi.go.id", full_name: "Petugas Rudi", role: "agent", is_active: false, counter_id: null, created_at: iso(120 * DAY) },
+  ],
+  counters: [
+    { id: 1, name: "Konter A-1", location: "Terminal 2 Internasional", status: "active", active_agent_name: "Petugas Andi" },
+    { id: 2, name: "Konter A-2", location: "Terminal 2 Internasional", status: "active", active_agent_name: "Petugas Sari" },
+    { id: 3, name: "Konter B-1", location: "Terminal 3 Domestik", status: "break", active_agent_name: null },
+    { id: 4, name: "Konter B-2", location: "Terminal 3 Domestik", status: "inactive", active_agent_name: null },
+  ],
+  passengers: [], escalations: [], voa: [],
+  blacklist: [
+    { id: 1, passport_number: "XX1234567", full_name: "John Doe Suspect", nationality: "Unknown", type: "both", reason: "Tersangka tindak pidana penyelundupan", is_active: true, added_by: 1, created_at: iso(60 * DAY) },
+    { id: 2, passport_number: "YY9876543", full_name: null, nationality: "Country X", type: "passport", reason: "Dokumen palsu", is_active: true, added_by: 1, created_at: iso(45 * DAY) },
+    { id: 3, passport_number: null, full_name: "Jane Smith Banned", nationality: null, type: "name", reason: "Overstay > 6 bulan", is_active: true, added_by: 1, created_at: iso(30 * DAY) },
+  ],
+  notifications: [], audit: [],
+};
+
+const NAMES = [["Budi Santoso","Indonesia"],["Siti Nurhaliza","Indonesia"],["John Smith","United Kingdom"],["Tanaka Kenji","Japan"],["Li Wei","China"],["Maria Garcia","Spain"],["Ahmed Al-Rashid","United Arab Emirates"],["Kim Min-jun","South Korea"],["Nguyen Van An","Vietnam"],["Somchai P.","Thailand"],["Asep Sunandar","Indonesia"],["Emily Watson","United States"],["Ravi Kumar","India"],["Fatima Zahra","Morocco"],["Peter Muller","Germany"],["Yuki Sato","Japan"],["Dewi Lestari","Indonesia"],["Mohamed Salah","Egypt"],["Anna Kowalski","Poland"],["Carlos Silva","Brazil"]];
+const STATUSES = ["pending","approved","approved","approved","hold","deported","rejected","approved"];
+const VISA = ["Tourist","Business","VOA","Social",null,"Transit"];
+(function seed() {
+  for (let i = 0; i < 46; i++) {
+    const [name, nat] = NAMES[i % NAMES.length];
+    const status = STATUSES[i % STATUSES.length];
+    const blHit = name === "John Doe Suspect" ? "Tersangka tindak pidana penyelundupan" : null;
+    const id = ++state.seq.passenger;
+    const createdAgo = (i % 10) * 25 * MIN + (i % 4) * 40 * MIN;
+    state.passengers.push({
+      id, full_name: name, passport_number: "P" + (1000000 + id), nationality: nat,
+      visa_type: VISA[i % VISA.length], flight_number: ["GA","SQ","MH","CX","JL"][i % 5] + "-" + (300 + i),
+      direction: i % 3 === 0 ? "departure" : "arrival",
+      status: status === "pending" && blHit ? "hold" : status,
+      blacklist_hit: blHit, notes: i % 7 === 0 ? "Pemeriksaan tambahan singkat" : null,
+      agent_id: i % 2 === 0 ? 3 : 4, agent_name: i % 2 === 0 ? "Petugas Andi" : "Petugas Sari",
+      counter_id: i % 2 === 0 ? 1 : 2, counter_name: i % 2 === 0 ? "Konter A-1" : "Konter A-2",
+      processed_at: status === "pending" ? null : iso(createdAgo - 5 * MIN), created_at: iso(createdAgo),
+    });
+  }
+  state.passengers.filter((p) => p.status === "hold").forEach((p, idx) => {
+    state.escalations.push({ id: ++state.seq.esc, passenger_id: p.id, passenger_name: p.full_name, passenger_passport: p.passport_number, passenger_nationality: p.nationality, passenger_direction: p.direction, agent_id: p.agent_id, agent_name: p.agent_name, supervisor_id: null, reason: p.blacklist_hit || "Perlu verifikasi dokumen tambahan", decision: "pending", decision_notes: null, notified: true, created_at: iso(idx * 30 * MIN + 20 * MIN), resolved_at: null });
+  });
+  for (let i = 0; i < 3; i++) {
+    const p = state.passengers[i + 5];
+    state.escalations.push({ id: ++state.seq.esc, passenger_id: p.id, passenger_name: p.full_name, passenger_passport: p.passport_number, passenger_nationality: p.nationality, passenger_direction: p.direction, agent_id: p.agent_id, agent_name: p.agent_name, supervisor_id: 2, reason: "Verifikasi lanjutan", decision: i === 0 ? "approved" : i === 1 ? "deported" : "rejected", decision_notes: "Diputuskan oleh supervisor", notified: true, created_at: iso((i + 2) * DAY), resolved_at: iso((i + 2) * DAY - HOUR) });
+  }
+  [7,9,12,15,22].forEach((pi, i) => {
+    const p = state.passengers[pi];
+    state.voa.push({ id: ++state.seq.voa, passenger_id: p.id, passenger_name: p.full_name, passenger_passport: p.passport_number, passenger_nationality: p.nationality, supervisor_id: i < 2 ? 2 : null, duration_days: [30,30,60,14,30][i], fee_paid: i !== 2, status: i < 2 ? "approved" : i === 2 ? "rejected" : "pending", rejection_reason: i === 2 ? "Biaya belum dibayar" : null, applied_at: iso(i * 6 * HOUR + HOUR), processed_at: i < 3 ? iso(i * 5 * HOUR) : null });
+  });
+  const ACTIONS = ["LOGIN","SCAN_PASSPORT","APPROVE_PASSENGER","HOLD_PASSENGER","ESCALATION_APPROVED","ADD_BLACKLIST","LOGOUT","CREATE_USER"];
+  for (let i = 0; i < 40; i++) {
+    const u = [1,2,3,4][i % 4];
+    state.audit.push({ id: ++state.seq.audit, user_id: u, user_name: state.users.find((x) => x.id === u).full_name, action: ACTIONS[i % ACTIONS.length], target_type: ["passenger","blacklist","user",null][i % 4], target_id: i % 4 === 3 ? null : (i % 20) + 1, detail: ["Login berhasil","Paspor: A123***78 | BL: CLEAR","Paspor: B987***11","Alasan: Verifikasi dokumen"][i % 4], ip_address: "10.10." + (i % 5) + "." + (20 + (i % 30)), created_at: iso(i * 22 * MIN) });
+  }
+  state.notifications = [
+    { id: ++state.seq.notif, user_id: 1, type: "ESCALATION_CREATED", title: "Hold: John Doe Suspect", message: "Tersangka tindak pidana penyelundupan", severity: "danger", is_read: false, target_type: "escalation", target_id: 1, created_at: iso(20 * MIN) },
+    { id: ++state.seq.notif, user_id: 1, type: "VOA_DECIDED", title: "VOA approved", message: "Li Wei", severity: "info", is_read: false, target_type: "voa", target_id: 2, created_at: iso(2 * HOUR) },
+    { id: ++state.seq.notif, user_id: 1, type: "ESCALATION_CREATED", title: "Hold: Emily Watson", message: "Perlu verifikasi dokumen", severity: "danger", is_read: true, target_type: "escalation", target_id: 2, created_at: iso(3 * HOUR) },
+    { id: ++state.seq.notif, user_id: 2, type: "ESCALATION_CREATED", title: "Hold: John Doe Suspect", message: "Tersangka tindak pidana penyelundupan", severity: "danger", is_read: false, target_type: "escalation", target_id: 1, created_at: iso(20 * MIN) },
+  ];
+})();
+
+const me = () => state.users.find((u) => u.id === state.currentUserId);
+const byId = (arr, id) => arr.find((x) => String(x.id) === String(id));
+
+/* ── Helpers ── */
+function checkBlacklist(passport, name) {
+  const p = (passport || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const n = (name || "").trim().toUpperCase().replace(/\s+/g, " ");
+  return state.blacklist.find((b) => b.is_active && ((p && (b.passport_number || "").toUpperCase().replace(/[^A-Z0-9]/g, "") === p) || (n && (b.full_name || "").trim().toUpperCase().replace(/\s+/g, " ") === n)));
+}
+function addAudit(action, target_type, target_id, detail) {
+  const u = me();
+  state.audit.unshift({ id: ++state.seq.audit, user_id: u ? u.id : null, user_name: u ? u.full_name : "Sistem", action, target_type, target_id, detail: detail || null, ip_address: "10.10.0.1", created_at: new Date().toISOString() });
+}
+function notifySupervisors(type, title, message, tt, tid) {
+  state.users.filter((u) => u.role === "supervisor" || u.role === "admin").forEach((u) => {
+    state.notifications.unshift({ id: ++state.seq.notif, user_id: u.id, type, title, message: message || null, severity: type === "ESCALATION_CREATED" ? "danger" : "info", is_read: false, target_type: tt, target_id: tid, created_at: new Date().toISOString() });
+  });
+}
+function toast(msg, type) {
+  const root = document.getElementById("toast-root");
+  const el = document.createElement("div");
+  el.className = "toast " + (type ? "toast--" + type : "");
+  el.textContent = msg;
+  root.appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+const NAV = {
+  agent: [["dashboard","Dashboard","▣"],["scan","Verifikasi Paspor","🛂"],["passengers","Data Penumpang","☰"],["counters","Konter","◉"]],
+  supervisor: [["dashboard","Dashboard","▣"],["escalations","Hold Desk","⚠"],["voa","Visa On Arrival","🪪"],["counters","Konter","◉"],["stats","Statistik","📈"],["passengers","Data Penumpang","☰"]],
+  admin: [["dashboard","Dashboard","▣"],["passengers","Data Penumpang","☰"],["counters","Konter","◉"],["blacklist","Daftar Cekal","⛔"],["users","Manajemen User","👥"],["reports","Laporan","📊"],["audit","Audit Log","📋"]],
+};
+const PAGE_TITLE = { dashboard:"Dashboard", scan:"Verifikasi Paspor", passengers:"Data Penumpang", escalations:"Hold Desk", voa:"Visa On Arrival", counters:"Konter", stats:"Statistik", blacklist:"Daftar Cekal", users:"Manajemen User", reports:"Laporan", audit:"Audit Log" };
+
+/* ── App ── */
+const App = {
+  /* login */
+  loginScreen() {
+    return `
+    <div class="login">
+      <aside class="login__aside">
+        <div class="login__brand"><div class="login__brand-mark">🛂</div><div><strong style="letter-spacing:.08em">IMIGRASI</strong><div style="font-size:11px;color:#94a3b8;letter-spacing:.14em">SISTEM INFORMASI</div></div></div>
+        <div>
+          <h1 class="login__headline">Sistem Pemeriksaan Imigrasi Bandara</h1>
+          <p class="login__lead">Demo UI dengan data contoh. Tidak memerlukan backend maupun database.</p>
+          <ul class="login__points">
+            <li>✓ Verifikasi MRZ paspor (simulasi)</li>
+            <li>✓ Hold Desk &amp; notifikasi supervisor</li>
+            <li>✓ Daftar cekal, VOA, audit, laporan</li>
+          </ul>
+        </div>
+        <div style="font-size:12px;color:#64748b">Mode demo — bukan data nyata.</div>
+      </aside>
+      <section class="login__panel">
+        <div class="login__card">
+          <h2 class="login__title">Masuk ke Sistem</h2>
+          <p class="login__subtitle">Masukkan username apa saja, atau pilih peran cepat</p>
+          <form onsubmit="event.preventDefault();App.login(this.username.value)">
+            <div class="field"><label class="field__label">Username</label><input class="input" name="username" value="admin" autocomplete="off" /></div>
+            <div class="field"><label class="field__label">Password</label><input class="input" type="password" value="demo" autocomplete="off" /></div>
+            <button class="btn btn--primary btn--block" type="submit">Masuk</button>
+          </form>
+          <div class="login__quick">
+            <button class="btn btn--secondary" onclick="App.login('agent1')">Petugas</button>
+            <button class="btn btn--secondary" onclick="App.login('supervisor1')">Supervisor</button>
+            <button class="btn btn--secondary" onclick="App.login('admin')">Admin</button>
+          </div>
+          <p class="login__footer">Sesi otomatis berakhir setelah tidak ada aktivitas.</p>
+        </div>
+      </section>
+    </div>`;
+  },
+  login(username) {
+    const u = username || "admin";
+    let user = state.users.find((x) => x.username.toLowerCase() === u.toLowerCase());
+    if (!user) user = state.users.find((x) => (u.toLowerCase().includes("supervisor") ? x.role === "supervisor" : u.toLowerCase().includes("agent") ? x.role === "agent" : x.role === "admin"));
+    if (!user) user = state.users[0];
+    state.currentUserId = user.id;
+    state.page = "dashboard";
+    state.ui = { page: 1, search: "", status: "", direction: "", decisionFilter: "pending", voaFilter: "pending", actionFilter: "" };
+    addAudit("LOGIN", null, null, "Login demo");
+    toast("Masuk sebagai " + ROLE[user.role], "success");
+    this.render();
+  },
+  logout() { state.currentUserId = null; state.userMenu = false; this.render(); },
+  nav(page) { state.page = page; state.ui.page = 1; state.mobileOpen = false; this.render(); },
+  setStatus(s) { state.ui.status = s; state.ui.page = 1; this.render(); },
+  setDecision(d) { state.ui.decisionFilter = d; state.ui.page = 1; this.render(); },
+  setVoa(s) { state.ui.voaFilter = s; state.ui.page = 1; this.render(); },
+  setSearch(v) { state.ui.search = v; state.ui.page = 1; this.render(); },
+  setDirection(v) { state.ui.direction = v; state.ui.page = 1; this.render(); },
+  setActionFilter(v) { state.ui.actionFilter = v; state.ui.page = 1; this.render(); },
+  page_(n) { state.ui.page = Math.max(1, n); this.render(); },
+  toggleSidebar() { this.render(); },
+  toggleCollapse() { state.collapsed = !state.collapsed; this.render(); },
+  toggleMobile() { state.mobileOpen = !state.mobileOpen; this.render(); },
+  toggleUserMenu() { state.userMenu = !state.userMenu; state.bell = false; this.render(); },
+  toggleBell() { state.bell = !state.bell; state.userMenu = false; this.render(); },
+  markAllRead() { state.notifications.filter((n) => n.user_id === me().id).forEach((n) => (n.is_read = true)); this.render(); },
+
+  /* shell */
+  render() {
+    const root = document.getElementById("root");
+    if (!me()) { root.innerHTML = this.loginScreen(); }
+    else {
+      root.innerHTML = `<div class="app-shell">${this.sidebar()}${state.mobileOpen ? '<div class="sidebar__scrim" onclick="App.toggleMobile()"></div>' : ""}<div class="main ${state.collapsed ? "main--collapsed" : ""}">${this.topbar()}<main class="content">${this.page()}</main></div></div>`;
+    }
+    document.getElementById("modal-root").innerHTML = "";
+    this.afterRender();
+  },
+  afterRender() {
+    if (state._focusSearch) {
+      const el = document.getElementById("search-input");
+      if (el) { el.focus(); const n = el.value.length; try { el.setSelectionRange(n, n); } catch (e) {} }
+      state._focusSearch = false;
+    }
+  },
+  search(v, field) {
+    field = field || "search";
+    state.ui[field] = v; state.ui.page = 1; state._focusSearch = true;
+    clearTimeout(this._t);
+    this._t = setTimeout(() => this.render(), 300);
+  },
+  sidebar() {
+    const u = me();
+    const items = NAV[u.role] || [];
+    const pendingEsc = state.escalations.filter((e) => e.decision === "pending").length;
+    const pendingVoa = state.voa.filter((v) => v.status === "pending").length;
+    const badgeFor = (p) => (p === "escalations" ? pendingEsc : p === "voa" ? pendingVoa : 0);
+    return `<aside class="sidebar ${state.collapsed ? "sidebar--collapsed" : ""} ${state.mobileOpen ? "is-open" : ""}">
+      <div class="sidebar__brand"><div class="sidebar__brand-mark">🛂</div><div class="sidebar__brand-text"><strong>IMIGRASI</strong><span>SISTEM INFORMASI</span></div></div>
+      <div class="sidebar__user"><div class="sidebar__user-name">${esc(u.full_name)}</div><div style="margin-top:6px">${roleBadge(u.role)}</div></div>
+      <nav class="sidebar__nav">
+        ${items.map(([id, label, icon]) => { const b = badgeFor(id); return `<button class="nav-link ${state.page === id ? "is-active" : ""}" onclick="App.nav('${id}')" title="${esc(label)}"><span class="nav-link__icon">${icon}</span><span class="nav-link__label">${esc(label)}</span>${b > 0 ? `<span class="nav-link__badge">${b}</span>` : ""}</button>`; }).join("")}
+      </nav>
+      <div class="sidebar__footer"><div style="font-size:11px;color:#94a3b8">DEMO — data statis</div></div>
+    </aside>`;
+  },
+  topbar() {
+    const u = me();
+    const unread = state.notifications.filter((n) => n.user_id === u.id && !n.is_read).length;
+    const showBell = u.role === "supervisor" || u.role === "admin";
+    const notifs = state.notifications.filter((n) => n.user_id === u.id).slice(0, 8);
+    return `<header class="topbar">
+      <button class="icon-btn" onclick="App.toggleMobile()" aria-label="Menu">☰</button>
+      <div><div class="topbar__title">${PAGE_TITLE[state.page] || "Dashboard"}</div><div class="topbar__subtitle">${new Date().toLocaleDateString("id-ID", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}</div></div>
+      <div class="topbar__spacer"></div>
+      <span class="badge badge--pending">MODE DEMO</span>
+      <span class="connection-status"><span class="connection-status__dot"></span>Online</span>
+      ${showBell ? `<div style="position:relative"><button class="icon-btn" onclick="App.toggleBell()" aria-label="Notifikasi">🔔${unread > 0 ? `<span class="notif-dot">${unread > 9 ? "9+" : unread}</span>` : ""}</button>
+        ${state.bell ? `<div class="notif-panel"><div class="notif-panel__header"><span>Notifikasi</span><button class="btn btn--ghost btn--sm" onclick="App.markAllRead()">Tandai dibaca</button></div><div class="notif-panel__list">${notifs.length ? notifs.map((n) => `<div class="notif-item ${n.is_read ? "" : "notif-item--unread"} notif-item--${n.severity || "info"}" onclick="App.bell=false;App.nav('${n.target_type === "escalation" ? "escalations" : n.target_type === "voa" ? "voa" : "passengers"}')"><div class="notif-item__title">${esc(n.title)}</div>${n.message ? `<div class="notif-item__msg">${esc(n.message)}</div>` : ""}<div class="notif-item__time">${relTime(n.created_at)}</div></div>`).join("") : '<div class="state" style="padding:24px"><div class="state__title">Tidak ada notifikasi</div></div>'}</div></div>` : ""}</div>` : ""}
+      <div style="position:relative"><button class="icon-btn" onclick="App.toggleUserMenu()" aria-label="Menu pengguna">👤</button>
+        ${state.userMenu ? `<div class="notif-panel" style="width:250px"><div style="padding:14px 16px;border-bottom:1px solid var(--border)"><div style="font-weight:600">${esc(me().full_name)}</div><div class="muted" style="font-size:12px">@${esc(me().username)}</div></div><button class="notif-item" onclick="App.logout()">Keluar</button></div>` : ""}</div>
+    </header>`;
+  },
+
+  /* pages */
+  page() {
+    switch (state.page) {
+      case "dashboard": return me().role === "admin" ? this.dashAdmin() : me().role === "supervisor" ? this.dashSupervisor() : this.dashAgent();
+      case "scan": return this.scanPage();
+      case "passengers": return this.passengersPage();
+      case "escalations": return this.escalationsPage();
+      case "voa": return this.voaPage();
+      case "counters": return this.countersPage();
+      case "stats": return this.statsPage();
+      case "blacklist": return this.blacklistPage();
+      case "users": return this.usersPage();
+      case "reports": return this.reportsPage();
+      case "audit": return this.auditPage();
+      default: return this.dashAgent();
+    }
+  },
+  stat(label, value, icon, accent) { return `<div class="stat" style="border-left-color:${accent || "var(--color-primary)"}"><div><div class="stat__label">${label}</div><div class="stat__value">${value == null ? "—" : value}</div></div>${icon ? `<div class="stat__icon">${icon}</div>` : ""}</div>`; },
+
+  dashAgent() {
+    const u = me();
+    const mine = state.passengers.filter((p) => p.agent_id === u.id);
+    const counter = byId(state.counters, u.counter_id);
+    const recent = mine.slice(0, 10);
+    return `<div class="page-header"><div><h1>Dashboard Petugas</h1><p>Ringkasan aktivitas konter Anda hari ini</p></div><div class="page-header__actions"><button class="btn" onclick="App.nav('scan')">+ Verifikasi Paspor</button></div></div>
+    <div class="grid grid--stats" style="margin-bottom:22px">${this.stat("DIPERIKSA HARI INI", mine.length, "👤")}${this.stat("STATUS KONTER", counter ? CS[counter.status][0] : "N/A", "◉", "var(--success)")}${this.stat("PEMINDAIAN TERAKHIR", recent[0] ? `<span class="mono">${esc(recent[0].passport_number)}</span>` : "—", "🛂", "var(--warning)")}</div>
+    <div class="grid grid--2"><div class="card"><div class="card__header"><div class="card__title">Aktivitas Terbaru</div></div>${this.table(["NAMA","NO. PASPOR","ARAH","STATUS","WAKTU"], recent.map((p) => `<tr onclick="App.detail(${p.id})" style="cursor:pointer"><td>${esc(p.full_name)}</td><td class="mono">${esc(p.passport_number)}</td><td>${DIR[p.direction]}</td><td>${badge(PASS, p.status)}</td><td>${fmtTime(p.created_at)}</td></tr>`), "Belum ada pemrosesan")}</div>
+    <div class="stack"><div class="card card--pad"><div class="card__title" style="margin-bottom:12px">Aksi Cepat</div><div class="stack" style="gap:10px"><button class="btn btn--block" onclick="App.nav('scan')">🛂 Verifikasi Paspor Baru</button><button class="btn btn--secondary btn--block" onclick="App.nav('passengers')">☰ Riwayat Penumpang</button><button class="btn btn--secondary btn--block" onclick="App.nav('counters')">◉ Status Konter</button></div></div>
+    <div class="card card--pad"><div class="card__title" style="margin-bottom:12px">Panduan</div><div class="stack" style="gap:10px"><div><b>Data aman</b><div class="muted" style="font-size:12.5px">Tombol setujui muncul untuk penumpang tanpa catatan cekal.</div></div><div><b>Kena cekal</b><div class="muted" style="font-size:12.5px">Sistem otomatis menahan dan meneruskan ke Supervisor.</div></div></div></div></div></div>`;
+  },
+  dashSupervisor() {
+    const pending = state.escalations.filter((e) => e.decision === "pending");
+    const holds = state.passengers.filter((p) => p.status === "hold");
+    const byNat = {}; state.passengers.forEach((p) => (byNat[p.nationality] = (byNat[p.nationality] || 0) + 1));
+    const nat = Object.entries(byNat).sort((a, b) => b[1] - a[1]).slice(0, 8);
+    const max = nat[0] ? nat[0][1] : 1;
+    const count = (s) => state.passengers.filter((p) => p.status === s).length;
+    return `<div class="page-header"><div><h1>Dashboard Supervisor</h1><p>Pantauan kondisi lapangan</p></div></div>
+    ${pending.length ? `<div class="callout callout--danger" style="margin-bottom:20px"><span>⚠</span><span>${pending.length} eskalasi menunggu keputusan.</span><button class="btn btn--danger btn--sm" style="margin-left:auto" onclick="App.nav('escalations')">Tangani</button></div>` : ""}
+    <div class="grid grid--stats" style="margin-bottom:22px">${this.stat("ESKALASI PENDING", pending.length, "⚠", "var(--danger)")}${this.stat("VOA PENDING", state.voa.filter((v) => v.status === "pending").length, "🪪", "var(--warning)")}${this.stat("KONTER AKTIF", state.counters.filter((c) => c.status === "active").length, "◉", "var(--success)")}${this.stat("PENAHANAN", holds.length, "⛔")}${this.stat("KEDATANGAN", count("pending") + state.passengers.filter((p) => p.direction === "arrival").length, "✈", "var(--info)")}${this.stat("KEBERANGKATAN", state.passengers.filter((p) => p.direction === "departure").length, "✈", "var(--deported)")}</div>
+    <div class="grid grid--2"><div class="card"><div class="card__header"><div class="card__title">Penumpang per Negara Asal</div></div><div class="card__body"><div class="stack" style="gap:10px">${nat.map(([c, n]) => `<div><div class="row row--between" style="font-size:13px"><span>${esc(c)}</span><span class="mono">${n}</span></div><div style="height:6px;background:var(--surface-sunken);border-radius:3px;margin-top:4px"><div style="width:${(n / max) * 100}%;height:100%;border-radius:3px;background:var(--color-primary)"></div></div></div>`).join("")}</div></div></div>
+    <div class="stack"><div class="card card--pad"><div class="card__title" style="margin-bottom:12px">Tindakan Prioritas</div><div class="stack" style="gap:10px"><button class="btn btn--danger btn--block" onclick="App.nav('escalations')">⚠ Buka Hold Desk (${pending.length})</button><button class="btn btn--warning btn--block" onclick="App.nav('voa')">🪪 Proses VOA</button><button class="btn btn--secondary btn--block" onclick="App.nav('counters')">◉ Monitoring Konter</button><button class="btn btn--ghost btn--block" onclick="App.nav('stats')">📈 Statistik</button></div></div>
+    <div class="card card--pad"><div class="card__title" style="margin-bottom:12px">Ringkasan Status</div><dl class="detail-list"><div class="detail-row"><dt>Menunggu</dt><dd>${count("pending")}</dd></div><div class="detail-row"><dt>Disetujui</dt><dd class="text-success">${count("approved")}</dd></div><div class="detail-row"><dt>Ditahan</dt><dd class="text-danger">${count("hold")}</dd></div><div class="detail-row"><dt>Deportasi</dt><dd>${count("deported")}</dd></div></dl></div></div></div>`;
+  },
+  dashAdmin() {
+    const cards = [["users","👥","Manajemen User","Kelola akun staf"],["blacklist","⛔","Daftar Cekal","Blacklist paspor & nama"],["audit","📋","Audit Log","Jejak aktivitas"],["reports","📊","Laporan & Ekspor","Rekapitulasi pelintas"]];
+    return `<div class="page-header"><div><h1>Dashboard Administrator</h1><p>Ringkasan sistem dan operasional</p></div></div>
+    <div class="grid grid--stats" style="margin-bottom:24px">${this.stat("TOTAL STAF", state.users.length, "👥")}${this.stat("STAF AKTIF", state.users.filter((u) => u.is_active).length, "✓", "var(--success)")}${this.stat("CEKAL AKTIF", state.blacklist.filter((b) => b.is_active).length, "⛔", "var(--danger)")}${this.stat("TOTAL CEKAL", state.blacklist.length, "🚫", "var(--deported)")}${this.stat("AKTIVITAS AUDIT", state.audit.length, "📋", "var(--info)")}${this.stat("PENUMPANG", state.passengers.length, "✈", "var(--warning)")}</div>
+    <div class="grid grid--2">${cards.map(([id, ic, t, d]) => `<button class="card card--pad" style="text-align:left;cursor:pointer;display:flex;gap:16px;align-items:center;border:1px solid var(--border);font-family:inherit" onclick="App.nav('${id}')"><span style="font-size:26px">${ic}</span><span><span style="display:block;font-weight:600;color:var(--text)">${t}</span><span class="muted" style="font-size:13px">${d}</span></span></button>`).join("")}</div>`;
+  },
+
+  scanPage() {
+    const s = this._scan || (this._scan = { result: null, notice: "" });
+    if (s.result) {
+      const p = s.result, hit = !!p.blacklist_hit;
+      const rows = [["Nama", esc(p.full_name)], ["No. Paspor", `<span class="mono">${esc(p.passport_number)}</span>`], ["Kewarganegaraan", esc(p.nationality)], ["Jenis Visa", esc(p.visa_type || "—")], ["Penerbangan", esc(p.flight_number || "—")], ["Arah", DIR[p.direction]], ["Status", badge(PASS, p.status)], ["Waktu", fmtDateTime(p.created_at)]];
+      return `<div class="page-header"><div><h1>Verifikasi Paspor</h1><p>Hasil pemrosesan</p></div></div>
+      <div class="card card--pad"><div class="result-banner result-banner--${hit ? "hit" : "clear"}"><div class="result-banner__title">${hit ? "⛔ Terdeteksi Daftar Cekal" : "✓ Aman — Tidak terdeteksi"}</div>${hit ? `<p style="margin:0;font-size:13px">Alasan: ${esc(p.blacklist_hit)}. Penumpang otomatis ditahan untuk supervisor.</p>` : `<p style="margin:0;font-size:13px">Tidak ada kecocokan daftar cekal.</p>`}</div>
+      <div class="data-grid" style="margin-bottom:20px">${rows.map(([l, v]) => `<div class="data-item"><div class="data-item__label">${l}</div><div class="data-item__value">${v}</div></div>`).join("")}</div>
+      <div class="row" style="flex-wrap:wrap">${!hit && p.status === "pending" ? `<button class="btn btn--success" onclick="App.approve(${p.id})">✓ Setujui Masuk</button>` : ""}${!hit && p.status === "pending" ? `<button class="btn btn--danger" onclick="App.escalate(${p.id})">⚠ Tahan / Eskalasi</button>` : ""}${p.status === "approved" ? `<div class="alert alert--success" style="margin:0">Penumpang diizinkan masuk.</div>` : ""}${p.status === "hold" ? `<div class="alert alert--warning" style="margin:0">Penumpang ditahan, menunggu keputusan Supervisor.</div>` : ""}<button class="btn btn--ghost" onclick="App.scanReset()">Pindai Baru</button></div></div>`;
+    }
+    return `<div class="page-header"><div><h1>Verifikasi Paspor</h1><p>Input data penumpang untuk pemeriksaan</p></div><div class="page-header__actions"><button class="btn btn--secondary" onclick="App.simulateMrz()">📷 Simulasi Pindai MRZ</button></div></div>
+    ${s.notice ? `<div class="alert alert--success">${s.notice}</div>` : ""}
+    <div class="grid" style="grid-template-columns:minmax(0,1fr) 360px;align-items:start"><div class="card card--pad">
+      <form onsubmit="event.preventDefault();App.createPassenger(this)">
+        <div class="form-grid">
+          <div class="span-2"><div class="field"><label class="field__label">Nama Lengkap<span class="req">*</span></label><input class="input" name="full_name" placeholder="Sesuai paspor" required></div></div>
+          <div class="field"><label class="field__label">Nomor Paspor<span class="req">*</span></label><input class="input mono" name="passport_number" placeholder="AB123456" required></div>
+          <div class="field"><label class="field__label">Kewarganegaraan<span class="req">*</span></label><input class="input" name="nationality" placeholder="Indonesia" required></div>
+          <div class="field"><label class="field__label">Jenis Visa</label><input class="input" name="visa_type" placeholder="Tourist, Business…"></div>
+          <div class="field"><label class="field__label">Nomor Penerbangan</label><input class="input" name="flight_number" placeholder="GA-123"></div>
+          <div class="span-2"><div class="field"><label class="field__label">Arah Perjalanan</label><select class="select" name="direction"><option value="arrival">Kedatangan</option><option value="departure">Keberangkatan</option></select></div></div>
+          <div class="span-2"><div class="field"><label class="field__label">Catatan</label><textarea class="textarea" name="notes" placeholder="Catatan tambahan…"></textarea></div></div>
+        </div>
+        <button class="btn btn--primary btn--block" type="submit">🔍 Verifikasi &amp; Cek Daftar Cekal</button>
+      </form></div>
+      <div class="stack"><div class="card card--pad"><div class="card__title" style="margin-bottom:12px">Panduan</div><div class="stack" style="gap:10px"><div><b>Aman</b><div class="muted" style="font-size:12.5px">Tombol setujui muncul bila tidak ada catatan cekal.</div></div><div><b>Kena cekal</b><div class="muted" style="font-size:12.5px">Otomatis ditahan &amp; diteruskan ke supervisor.</div></div><div><b>Contoh cekal</b><div class="muted" style="font-size:12.5px">Coba paspor <span class="mono">XX1234567</span> atau nama <span class="mono">John Doe Suspect</span>.</div></div></div></div></div></div>`;
+  },
+  simulateMrz() {
+    this._scan = this._scan || {};
+    this._scan.notice = "Data MRZ terisi otomatis (simulasi): A12345678 / Budi Santoso.";
+    const form = document.querySelector("form");
+    if (form) { form.full_name.value = "Budi Santoso"; form.passport_number.value = "A12345678"; form.nationality.value = "Indonesia"; form.visa_type.value = "Tourist"; form.flight_number.value = "GA-412"; }
+    this.render();
+  },
+  createPassenger(form) {
+    const f = form;
+    const val = (n) => { const el = f.elements.namedItem(n); return el && el.value ? el.value.trim() : ""; };
+    const payload = { full_name: val("full_name"), passport_number: val("passport_number").toUpperCase(), nationality: val("nationality"), visa_type: val("visa_type") || null, flight_number: val("flight_number") || null, direction: val("direction") || "arrival", notes: val("notes") || null };
+    if (!payload.full_name || !payload.passport_number || !payload.nationality) { toast("Lengkapi data wajib", "warning"); return; }
+    const hit = checkBlacklist(payload.passport_number, payload.full_name);
+    const u = me();
+    const id = ++state.seq.passenger;
+    const p = Object.assign({ id, status: hit ? "hold" : "pending", blacklist_hit: hit ? hit.reason : null, agent_id: u.id, agent_name: u.full_name, counter_id: u.counter_id, counter_name: (byId(state.counters, u.counter_id) || {}).name || null, processed_at: null, created_at: new Date().toISOString() }, payload);
+    state.passengers.unshift(p);
+    addAudit("SCAN_PASSPORT", "passenger", id, "Paspor: " + maskPassport(p.passport_number) + " | BL: " + (hit ? "HIT" : "CLEAR"));
+    if (hit) {
+      state.escalations.unshift({ id: ++state.seq.esc, passenger_id: id, passenger_name: p.full_name, passenger_passport: p.passport_number, passenger_nationality: p.nationality, passenger_direction: p.direction, agent_id: u.id, agent_name: u.full_name, supervisor_id: null, reason: hit.reason, decision: "pending", decision_notes: null, notified: true, created_at: new Date().toISOString(), resolved_at: null });
+      notifySupervisors("ESCALATION_CREATED", "Blacklist hit: " + p.full_name, hit.reason, "escalation", state.escalations[0].id);
+      toast("Blacklist terdeteksi — eskalasi otomatis dibuat", "warning");
+    } else { toast("Penumpang tersimpan (menunggu keputusan)", "success"); }
+    this._scan = { result: p, notice: "" };
+    this.render();
+  },
+  scanReset() { this._scan = { result: null, notice: "" }; this.render(); },
+  approve(id) {
+    const p = byId(state.passengers, id);
+    if (!p) return;
+    if (p.blacklist_hit) { toast("Penumpang kena blacklist, gunakan eskalasi", "danger"); return; }
+    p.status = "approved"; p.processed_at = new Date().toISOString();
+    addAudit("APPROVE_PASSENGER", "passenger", p.id, "Paspor: " + maskPassport(p.passport_number));
+    if (this._scan && this._scan.result && this._scan.result.id === p.id) this._scan.result = p;
+    toast("Penumpang diizinkan masuk", "success"); this.render();
+  },
+  escalate(id) {
+    const p = byId(state.passengers, id); if (!p) return;
+    this.modal({ title: "Tahan & Eskalasi ke Supervisor", desc: "Penumpang akan ditahan dan supervisor menerima notifikasi.", size: "sm",
+      body: `<div class="callout callout--warning" style="margin-bottom:14px">${esc(p.full_name)} — <span class="mono">${esc(p.passport_number)}</span></div><div class="field"><label class="field__label">Alasan eskalasi<span class="req">*</span></label><textarea class="textarea" id="esc-reason" placeholder="Tuliskan alasan…"></textarea></div>`,
+      footer: `<button class="btn btn--ghost" onclick="App.closeModal()">Batal</button><button class="btn btn--danger" onclick="App.confirmEscalate(${p.id})">Tahan &amp; Eskalasi</button>` });
+  },
+  confirmEscalate(id) {
+    const reason = (document.getElementById("esc-reason").value || "").trim();
+    if (!reason) { toast("Alasan wajib diisi", "warning"); return; }
+    const p = byId(state.passengers, id); const u = me();
+    p.status = "hold";
+    const esc = { id: ++state.seq.esc, passenger_id: p.id, passenger_name: p.full_name, passenger_passport: p.passport_number, passenger_nationality: p.nationality, passenger_direction: p.direction, agent_id: u.id, agent_name: u.full_name, supervisor_id: null, reason, decision: "pending", decision_notes: null, notified: true, created_at: new Date().toISOString(), resolved_at: null };
+    state.escalations.unshift(esc);
+    addAudit("HOLD_PASSENGER", "escalation", esc.id, "Alasan: " + reason);
+    notifySupervisors("ESCALATION_CREATED", "Hold: " + p.full_name, reason, "escalation", esc.id);
+    if (this._scan && this._scan.result && this._scan.result.id === p.id) this._scan.result = p;
+    this.closeModal(); toast("Penumpang ditahan & diteruskan ke supervisor", "warning"); this.render();
+  },
+
+  passengersPage() {
+    let list = [...state.passengers];
+    const u = me();
+    if (u.role === "agent") list = list.filter((p) => p.agent_id === u.id);
+    const s = state.ui;
+    if (s.status) list = list.filter((p) => p.status === s.status);
+    if (s.direction) list = list.filter((p) => p.direction === s.direction);
+    if (s.search) { const q = s.search.toLowerCase(); list = list.filter((p) => [p.full_name, p.passport_number, p.flight_number, p.nationality].some((v) => (v || "").toLowerCase().includes(q))); }
+    const { rows, page, pages, total, from, to } = this.paginate(list);
+    return `<div class="page-header"><div><h1>Data Penumpang</h1><p>Daftar penumpang yang telah diperiksa</p></div></div>
+    <div class="toolbar"><input id="search-input" class="input" placeholder="Cari nama / paspor / penerbangan…" value="${esc(s.search)}" oninput="App.search(this.value)" /><select class="select" onchange="App.setDirection(this.value)"><option value="">Semua arah</option><option value="arrival" ${s.direction === "arrival" ? "selected" : ""}>Kedatangan</option><option value="departure" ${s.direction === "departure" ? "selected" : ""}>Keberangkatan</option></select></div>
+    <div class="segmented" style="margin-bottom:16px"><button class="${!s.status ? "is-active" : ""}" onclick="App.setStatus('')">Semua</button>${Object.keys(PASS).map((k) => `<button class="${s.status === k ? "is-active" : ""}" onclick="App.setStatus('${k}')">${PASS[k][0]}</button>`).join("")}</div>
+    <div class="card">${this.table(["NAMA","NO. PASPOR","KEWARGANEGARAAN","ARAH","STATUS","CEKAL","PETUGAS","WAKTU"], rows.map((p) => `<tr onclick="App.detail(${p.id})" style="cursor:pointer"><td>${esc(p.full_name)}</td><td class="mono">${esc(p.passport_number)}</td><td>${esc(p.nationality)}</td><td>${DIR[p.direction]}</td><td>${badge(PASS, p.status)}</td><td>${p.blacklist_hit ? '<span class="text-danger">⚠ Ya</span>' : '<span class="subtle">—</span>'}</td><td>${esc(p.agent_name || "—")}</td><td>${fmtDateTime(p.created_at)}</td></tr>`), "Tidak ada data penumpang")}${this.pager(page, pages, total, from, to)}</div>`;
+  },
+  debounce: null,
+  debouncedSearch(v) { state.ui.search = v; state.ui.page = 1; clearTimeout(this.debounce); this.debounce = setTimeout(() => this.render(), 300); },
+  paginate(list) {
+    const pageSize = 25, page = state.ui.page, total = list.length, pages = Math.ceil(total / pageSize) || 0;
+    const start = (page - 1) * pageSize;
+    return { rows: list.slice(start, start + pageSize), page, pages, total, from: total ? start + 1 : 0, to: Math.min(page * pageSize, total) };
+  },
+  pager(page, pages, total, from, to) {
+    if (!total) return "";
+    return `<div class="pagination"><div class="pagination__info">Menampilkan <b>${from}</b>–<b>${to}</b> dari <b>${total}</b> data</div><div class="pagination__controls"><button class="btn btn--ghost btn--sm" onclick="App.page_(${page - 1})" ${page <= 1 ? "disabled" : ""}>← Sebelumnya</button><span class="muted" style="font-size:12.5px">Hal. ${page} / ${pages || 1}</span><button class="btn btn--ghost btn--sm" onclick="App.page_(${page + 1})" ${page >= pages ? "disabled" : ""}>Berikutnya →</button></div></div>`;
+  },
+  table(headers, rows, empty) {
+    return `<div class="table-wrap"><table class="table"><thead><tr>${headers.map((h) => `<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.length ? rows.join("") : `<tr><td colspan="${headers.length}"><div class="state"><div class="state__icon">🗂</div><div class="state__title">${empty || "Belum ada data"}</div></div></td></tr>`}</tbody></table></div>`;
+  },
+  detail(id) {
+    const p = byId(state.passengers, id); if (!p) return;
+    const hist = state.audit.filter((a) => a.target_type === "passenger" && String(a.target_id) === String(id)).slice(0, 8);
+    this.modal({ title: "Detail Penumpang", size: "lg",
+      body: `${p.blacklist_hit ? `<div class="callout callout--danger" style="margin-bottom:16px">⛔ Kena daftar cekal: ${esc(p.blacklist_hit)}</div>` : ""}
+      <dl class="detail-list" style="margin-bottom:20px">${[["Nama", esc(p.full_name)], ["No. Paspor", `<span class="mono">${esc(p.passport_number)}</span>`], ["Kewarganegaraan", esc(p.nationality)], ["Jenis Visa", esc(p.visa_type || "—")], ["Penerbangan", esc(p.flight_number || "—")], ["Arah", DIR[p.direction]], ["Status", badge(PASS, p.status)], ["Petugas", esc(p.agent_name || "—")], ["Konter", esc(p.counter_name || "—")], ["Waktu Proses", fmtDateTime(p.processed_at)], ["Dibuat", fmtDateTime(p.created_at)]].map(([k, v]) => `<div class="detail-row"><dt>${k}</dt><dd>${v}</dd></div>`).join("")}</dl>
+      <div class="card__title" style="margin-bottom:10px">Riwayat Aktivitas</div>${hist.length ? `<div class="stack" style="gap:0">${hist.map((a) => `<div class="activity-item"><div class="activity-item__icon">•</div><div><div class="activity-item__title">${esc(a.action)}</div><div class="activity-item__meta">${esc(a.detail || "—")} · ${fmtDateTime(a.created_at)}</div></div></div>`).join("")}</div>` : '<p class="muted">Belum ada aktivitas.</p>'}`,
+      footer: `<button class="btn btn--ghost" onclick="App.closeModal()">Tutup</button>` });
+  },
+
+  escalationsPage() {
+    let list = [...state.escalations];
+    if (state.ui.decisionFilter) list = list.filter((e) => e.decision === state.ui.decisionFilter);
+    list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    const { rows, page, pages, total, from, to } = this.paginate(list);
+    return `<div class="page-header"><div><h1>Hold Desk</h1><p>Penumpang yang ditahan &amp; menunggu keputusan</p></div></div>
+    <div class="segmented" style="margin-bottom:16px">${[["pending", "Menunggu"], ["approved", "Diloloskan"], ["deported", "Deportasi"], ["rejected", "Ditolak"], ["", "Semua"]].map(([k, l]) => `<button class="${state.ui.decisionFilter === k ? "is-active" : ""}" onclick="App.setDecision('${k}')">${l}</button>`).join("")}</div>
+    <div class="card">${this.table(["ID","PENUMPANG","NO. PASPOR","ALASAN","KEPUTUSAN","WAKTU","AKSI"], rows.map((e) => `<tr><td class="mono">#${e.id}</td><td>${esc(e.passenger_name)}</td><td class="mono">${esc(e.passenger_passport)}</td><td class="muted">${esc(e.reason || "—")}</td><td>${badge(DEC, e.decision)}</td><td>${fmtDateTime(e.created_at)}</td><td>${e.decision === "pending" ? `<button class="btn btn--sm" onclick="App.decide(${e.id})">Putuskan</button>` : '<span class="subtle">Selesai</span>'}</td></tr>`), "Tidak ada eskalasi")}${this.pager(page, pages, total, from, to)}</div>`;
+  },
+  decide(id) {
+    const e = byId(state.escalations, id); if (!e) return;
+    this.modal({ title: "Keputusan Eskalasi #" + e.id, desc: "Tinjau lalu tentukan keputusan final.",
+      body: `<div class="callout callout--warning" style="margin-bottom:14px">${esc(e.passenger_name)} — <span class="mono">${esc(e.passenger_passport)}</span></div><dl class="detail-list" style="margin-bottom:16px"><div class="detail-row"><dt>Alasan Hold</dt><dd>${esc(e.reason || "—")}</dd></div><div class="detail-row"><dt>Petugas</dt><dd>${esc(e.agent_name || "—")}</dd></div></dl><div class="field"><label class="field__label">Keputusan</label><select class="select" id="dec-sel"><option value="approved">Loloskan — Izin Masuk</option><option value="deported">Deportasi</option><option value="rejected">Tolak Masuk</option></select></div><div class="field"><label class="field__label">Catatan</label><textarea class="textarea" id="dec-note" placeholder="Pertimbangan keputusan…"></textarea></div>`,
+      footer: `<button class="btn btn--ghost" onclick="App.closeModal()">Batal</button><button class="btn btn--danger" onclick="App.confirmDecide(${e.id})">Konfirmasi Keputusan</button>` });
+  },
+  confirmDecide(id) {
+    const e = byId(state.escalations, id);
+    const d = document.getElementById("dec-sel").value, note = (document.getElementById("dec-note").value || "").trim();
+    if ((d === "rejected" || d === "deported") && !note) { toast("Catatan wajib untuk keputusan ini", "warning"); return; }
+    e.decision = d; e.decision_notes = note || null; e.supervisor_id = me().id; e.resolved_at = new Date().toISOString();
+    const p = byId(state.passengers, e.passenger_id);
+    if (p) { p.status = { approved: "approved", deported: "deported", rejected: "rejected" }[d]; p.processed_at = new Date().toISOString(); }
+    addAudit("ESCALATION_" + d.toUpperCase(), "passenger", e.passenger_id, "Eskalasi #" + id + ": " + d);
+    this.closeModal(); toast("Keputusan tersimpan: " + DEC[d][0], "success"); this.render();
+  },
+
+  voaPage() {
+    let list = [...state.voa];
+    if (state.ui.voaFilter) list = list.filter((v) => v.status === state.ui.voaFilter);
+    list.sort((a, b) => new Date(b.applied_at) - new Date(a.applied_at));
+    const { rows, page, pages, total, from, to } = this.paginate(list);
+    return `<div class="page-header"><div><h1>Visa On Arrival</h1><p>Permohonan VOA yang memerlukan verifikasi</p></div></div>
+    <div class="segmented" style="margin-bottom:16px">${[["pending", "Menunggu"], ["approved", "Disetujui"], ["rejected", "Ditolak"], ["", "Semua"]].map(([k, l]) => `<button class="${state.ui.voaFilter === k ? "is-active" : ""}" onclick="App.setVoa('${k}')">${l}</button>`).join("")}</div>
+    <div class="card">${this.table(["ID","PENUMPANG","NO. PASPOR","DURASI","BIAYA","STATUS","DIAJUKAN","AKSI"], rows.map((v) => `<tr><td class="mono">#${v.id}</td><td>${esc(v.passenger_name)}</td><td class="mono">${esc(v.passenger_passport)}</td><td>${v.duration_days} hari</td><td>${v.fee_paid ? '<span class="text-success">Lunas</span>' : '<span class="text-danger">Belum</span>'}</td><td>${badge(VS, v.status)}</td><td>${fmtDate(v.applied_at)}</td><td>${v.status === "pending" ? `<button class="btn btn--sm" onclick="App.decideVoa(${v.id})">Proses</button>` : '<span class="subtle">Selesai</span>'}</td></tr>`), "Tidak ada permohonan VOA")}${this.pager(page, pages, total, from, to)}</div>`;
+  },
+  decideVoa(id) {
+    const v = byId(state.voa, id); if (!v) return;
+    this.modal({ title: "Proses VOA #" + v.id,
+      body: `<dl class="detail-list" style="margin-bottom:16px"><div class="detail-row"><dt>Penumpang</dt><dd>${esc(v.passenger_name)}</dd></div><div class="detail-row"><dt>Durasi</dt><dd>${v.duration_days} hari</dd></div><div class="detail-row"><dt>Biaya</dt><dd>${v.fee_paid ? "Lunas" : "Belum lunas"}</dd></div></dl><div class="field"><label class="field__label">Keputusan</label><select class="select" id="voa-sel" onchange="document.getElementById('voa-reason-wrap').style.display=this.value==='rejected'?'block':'none'"><option value="approved">Setujui VOA</option><option value="rejected">Tolak VOA</option></select></div><div class="field" id="voa-reason-wrap" style="display:none"><label class="field__label">Alasan Penolakan</label><input class="input" id="voa-reason"></div>`,
+      footer: `<button class="btn btn--ghost" onclick="App.closeModal()">Batal</button><button class="btn btn--success" onclick="App.confirmVoa(${v.id})">Konfirmasi</button>` });
+  },
+  confirmVoa(id) {
+    const v = byId(state.voa, id);
+    const s = document.getElementById("voa-sel").value;
+    const reason = (document.getElementById("voa-reason") || {}).value || "";
+    if (s === "rejected" && !reason.trim()) { toast("Alasan penolakan wajib diisi", "warning"); return; }
+    v.status = s; v.rejection_reason = s === "rejected" ? reason.trim() : null; v.supervisor_id = me().id; v.processed_at = new Date().toISOString();
+    addAudit("VOA_" + s.toUpperCase(), "voa", v.id);
+    this.closeModal(); toast("VOA di" + (s === "approved" ? "setujui" : "tolak"), "success"); this.render();
+  },
+
+  countersPage() {
+    const u = me();
+    return `<div class="page-header"><div><h1>Konter Pemeriksaan</h1><p>Status dan petugas setiap konter</p></div>${u.role === "admin" ? `<div class="page-header__actions"><button class="btn" onclick="App.addCounter()">+ Tambah Konter</button></div>` : ""}</div>
+    <div class="grid grid--3">${state.counters.map((c) => { const mine = c.id === u.counter_id; const can = u.role !== "agent" || mine; return `<div class="card card--pad"><div class="row row--between" style="margin-bottom:12px"><div><div style="font-weight:700;font-size:15px">${esc(c.name)} ${mine ? '<span class="subtle" style="font-size:11px">(konter Anda)</span>' : ""}</div><div class="muted" style="font-size:12px">${esc(c.location || "—")}</div></div>${badge(CS, c.status)}</div><div class="muted" style="font-size:12.5px;margin-bottom:12px">Petugas aktif: ${esc(c.active_agent_name || "—")}</div>${can ? `<div class="row">${["active","break","inactive"].map((s) => `<button class="btn btn--ghost btn--sm" style="flex:1;${c.status === s ? "border-color:var(--color-primary);color:var(--color-primary)" : ""}" ${c.status === s ? "disabled" : ""} onclick="App.setCounter(${c.id},'${s}')">${CS[s][0]}</button>`).join("")}</div>` : ""}</div>`; }).join("")}</div>`;
+  },
+  setCounter(id, status) { const c = byId(state.counters, id); c.status = status; addAudit("UPDATE_COUNTER", "counter", id); toast(c.name + " → " + CS[status][0], "success"); this.render(); },
+  addCounter() {
+    this.modal({ title: "Tambah Konter", size: "sm", body: `<div class="field"><label class="field__label">Nama Konter<span class="req">*</span></label><input class="input" id="c-name" placeholder="Konter A-3"></div><div class="field"><label class="field__label">Lokasi</label><input class="input" id="c-loc" placeholder="Terminal 2 Internasional"></div>`,
+      footer: `<button class="btn btn--ghost" onclick="App.closeModal()">Batal</button><button class="btn" onclick="App.confirmAddCounter()">Simpan</button>` });
+  },
+  confirmAddCounter() {
+    const name = document.getElementById("c-name").value.trim();
+    if (!name) { toast("Nama konter wajib diisi", "warning"); return; }
+    state.counters.push({ id: ++state.seq.counter, name, location: document.getElementById("c-loc").value.trim() || null, status: "inactive", active_agent_name: null });
+    addAudit("CREATE_COUNTER", "counter", state.seq.counter);
+    this.closeModal(); toast("Konter ditambahkan", "success"); this.render();
+  },
+
+  statsPage() {
+    const byNat = {}; state.passengers.forEach((p) => (byNat[p.nationality] = (byNat[p.nationality] || 0) + 1));
+    const nat = Object.entries(byNat).sort((a, b) => b[1] - a[1]).slice(0, 15);
+    const max = nat[0] ? nat[0][1] : 1;
+    const count = (s) => state.passengers.filter((p) => p.status === s).length;
+    return `<div class="page-header"><div><h1>Statistik Lapangan</h1><p>Ringkasan data penumpang</p></div></div>
+    <div class="grid grid--stats" style="margin-bottom:22px">${this.stat("TOTAL", state.passengers.length, "👥")}${this.stat("KEDATANGAN", state.passengers.filter((p) => p.direction === "arrival").length, "✈", "var(--success)")}${this.stat("KEBERANGKATAN", state.passengers.filter((p) => p.direction === "departure").length, "✈", "var(--info)")}${this.stat("DITAHAN", count("hold"), "⛔", "var(--danger)")}</div>
+    <div class="card"><div class="card__header"><div class="card__title">Penumpang per Negara Asal</div></div><div class="card__body"><div class="stack" style="gap:12px">${nat.map(([c, n]) => `<div><div class="row row--between" style="font-size:13px"><span>${esc(c)}</span><span class="mono">${n}</span></div><div style="height:8px;background:var(--surface-sunken);border-radius:4px;margin-top:4px"><div style="width:${(n / max) * 100}%;height:100%;border-radius:4px;background:var(--color-primary)"></div></div></div>`).join("")}</div></div></div>`;
+  },
+
+  blacklistPage() {
+    let list = [...state.blacklist];
+    if (state.ui.search) { const q = state.ui.search.toLowerCase(); list = list.filter((b) => [b.full_name, b.passport_number, b.nationality].some((v) => (v || "").toLowerCase().includes(q))); }
+    const { rows, page, pages, total, from, to } = this.paginate(list);
+    return `<div class="page-header"><div><h1>Daftar Cekal</h1><p>Manajemen blacklist paspor dan nama</p></div><div class="page-header__actions"><button class="btn" onclick="App.addBlacklist()">+ Tambah Cekal</button></div></div>
+    <div class="toolbar"><input id="search-input" class="input" placeholder="Cari nama / paspor / negara…" value="${esc(state.ui.search)}" oninput="App.search(this.value)" style="min-width:280px"></div>
+    <div class="card">${this.table(["NO. PASPOR","NAMA","NEGARA","TIPE","ALASAN","DITAMBAHKAN","STATUS","AKSI"], rows.map((b) => `<tr><td class="mono">${esc(b.passport_number || "—")}</td><td>${esc(b.full_name || "—")}</td><td>${esc(b.nationality || "—")}</td><td>${BTYPE[b.type] || b.type}</td><td class="muted">${esc(b.reason || "—")}</td><td>${fmtDate(b.created_at)}</td><td>${b.is_active ? '<span class="badge badge--hold">Aktif</span>' : '<span class="badge badge--neutral">Nonaktif</span>'}</td><td>${b.is_active ? `<button class="btn btn--danger btn--sm" onclick="App.removeBlacklist(${b.id})">Nonaktifkan</button>` : '<span class="subtle">—</span>'}</td></tr>`), "Tidak ada data cekal")}${this.pager(page, pages, total, from, to)}</div>`;
+  },
+  addBlacklist() {
+    this.modal({ title: "Tambah Daftar Cekal", desc: "Digunakan untuk pengecekan otomatis saat pemrosesan penumpang.",
+      body: `<div class="field"><label class="field__label">Tipe Cekal</label><select class="select" id="b-type"><option value="passport">Paspor</option><option value="name">Nama</option><option value="both">Keduanya</option></select></div><div class="field"><label class="field__label">Nomor Paspor</label><input class="input mono" id="b-pass" placeholder="Kosongkan jika berbasis nama"></div><div class="field"><label class="field__label">Nama Lengkap</label><input class="input" id="b-name"></div><div class="field"><label class="field__label">Kewarganegaraan</label><input class="input" id="b-nat"></div><div class="field"><label class="field__label">Alasan Cekal</label><textarea class="textarea" id="b-reason"></textarea></div>`,
+      footer: `<button class="btn btn--ghost" onclick="App.closeModal()">Batal</button><button class="btn btn--danger" onclick="App.confirmAddBlacklist()">Tambah Cekal</button>` });
+  },
+  confirmAddBlacklist() {
+    const pass = document.getElementById("b-pass").value.trim().toUpperCase() || null;
+    const name = document.getElementById("b-name").value.trim() || null;
+    if (!pass && !name) { toast("Isi minimal paspor atau nama", "warning"); return; }
+    state.blacklist.unshift({ id: ++state.seq.bl, passport_number: pass, full_name: name, nationality: document.getElementById("b-nat").value.trim() || null, type: document.getElementById("b-type").value, reason: document.getElementById("b-reason").value.trim() || null, is_active: true, added_by: me().id, created_at: new Date().toISOString() });
+    addAudit("ADD_BLACKLIST", "blacklist", state.seq.bl);
+    this.closeModal(); toast("Entri cekal ditambahkan", "success"); this.render();
+  },
+  removeBlacklist(id) {
+    const b = byId(state.blacklist, id); if (!b) return;
+    this.confirmModal("Nonaktifkan Entri Cekal", `${esc(b.full_name || "—")} — <span class="mono">${esc(b.passport_number || "—")}</span>`, () => { b.is_active = false; addAudit("REMOVE_BLACKLIST", "blacklist", id); toast("Entri dinonaktifkan", "success"); this.render(); });
+  },
+
+  usersPage() {
+    let list = [...state.users];
+    if (state.ui.search) { const q = state.ui.search.toLowerCase(); list = list.filter((u) => [u.username, u.full_name, u.email].some((v) => (v || "").toLowerCase().includes(q))); }
+    list.sort((a, b) => a.id - b.id);
+    const { rows, page, pages, total, from, to } = this.paginate(list);
+    return `<div class="page-header"><div><h1>Manajemen User</h1><p>Akun staf dan hak akses</p></div><div class="page-header__actions"><button class="btn" onclick="App.addUser()">+ Tambah User</button></div></div>
+    <div class="toolbar"><input id="search-input" class="input" placeholder="Cari nama / username / email…" value="${esc(state.ui.search)}" oninput="App.search(this.value)" style="min-width:260px"></div>
+    <div class="card">${this.table(["NAMA LENGKAP","USERNAME","EMAIL","ROLE","STATUS","AKSI"], rows.map((u) => `<tr><td>${esc(u.full_name)}</td><td class="mono">${esc(u.username)}</td><td>${esc(u.email)}</td><td>${roleBadge(u.role)}</td><td>${u.is_active ? '<span class="badge badge--approved">Aktif</span>' : '<span class="badge badge--neutral">Nonaktif</span>'}</td><td>${u.is_active ? `<button class="btn btn--ghost btn--sm" onclick="App.toggleUser(${u.id})">Nonaktifkan</button>` : `<button class="btn btn--ghost btn--sm" onclick="App.toggleUser(${u.id})">Aktifkan</button>`}</td></tr>`), "Tidak ada user")}${this.pager(page, pages, total, from, to)}</div>`;
+  },
+  addUser() {
+    this.modal({ title: "Tambah User Baru", body: `<div class="field"><label class="field__label">Nama Lengkap<span class="req">*</span></label><input class="input" id="u-name"></div><div class="field"><label class="field__label">Username<span class="req">*</span></label><input class="input" id="u-user"></div><div class="field"><label class="field__label">Email<span class="req">*</span></label><input class="input" id="u-email" type="email"></div><div class="field"><label class="field__label">Password<span class="req">*</span></label><input class="input" id="u-pass" type="password" placeholder="Minimal 8 karakter"></div><div class="field"><label class="field__label">Role</label><select class="select" id="u-role"><option value="agent">Petugas</option><option value="supervisor">Supervisor</option><option value="admin">Administrator</option></select></div>`,
+      footer: `<button class="btn btn--ghost" onclick="App.closeModal()">Batal</button><button class="btn" onclick="App.confirmAddUser()">Simpan</button>` });
+  },
+  confirmAddUser() {
+    const name = document.getElementById("u-name").value.trim(), user = document.getElementById("u-user").value.trim(), email = document.getElementById("u-email").value.trim(), pass = document.getElementById("u-pass").value;
+    if (!name || !user || !email || !pass) { toast("Lengkapi data wajib", "warning"); return; }
+    state.users.push({ id: ++state.seq.user, username: user, email, full_name: name, role: document.getElementById("u-role").value, is_active: true, counter_id: null, created_at: new Date().toISOString() });
+    addAudit("CREATE_USER", "user", state.seq.user, "Buat akun " + user);
+    this.closeModal(); toast("User dibuat", "success"); this.render();
+  },
+  toggleUser(id) { const u = byId(state.users, id); u.is_active = !u.is_active; addAudit(u.is_active ? "ACTIVATE_USER" : "DEACTIVATE_USER", "user", id); toast("Status user diperbarui", "success"); this.render(); },
+
+  reportsPage() {
+    const count = (s) => state.passengers.filter((p) => p.status === s).length;
+    const rows = [["Menunggu", count("pending"), "var(--pending)"], ["Disetujui", count("approved"), "var(--success)"], ["Ditahan", count("hold"), "var(--hold)"], ["Deportasi", count("deported"), "var(--deported)"], ["Ditolak", count("rejected"), "var(--rejected)"]];
+    return `<div class="page-header"><div><h1>Laporan &amp; Ekspor</h1><p>Rekapitulasi pelintas batas</p></div></div>
+    <div class="grid grid--stats" style="margin-bottom:22px">${this.stat("TOTAL", state.passengers.length, "👥")}${this.stat("KEDATANGAN", state.passengers.filter((p) => p.direction === "arrival").length, "✈", "var(--success)")}${this.stat("KEBERANGKATAN", state.passengers.filter((p) => p.direction === "departure").length, "✈", "var(--info)")}${this.stat("DISETUJUI", count("approved"), "✓", "var(--warning)")}</div>
+    <div class="grid grid--2"><div class="card"><div class="card__header"><div class="card__title">Ekspor Laporan</div></div><div class="card__body stack" style="gap:10px"><p class="muted" style="font-size:13px">Unduh data rekapitulasi dalam format CSV. Nomor paspor dimasking.</p><button class="btn btn--success" onclick="App.exportCsv()">↓ Ekspor CSV (Semua)</button><button class="btn btn--secondary" onclick="App.exportCsv('arrival')">↓ Ekspor CSV (Kedatangan)</button><button class="btn btn--secondary" onclick="App.exportCsv('departure')">↓ Ekspor CSV (Keberangkatan)</button></div></div>
+    <div class="card"><div class="card__header"><div class="card__title">Ringkasan per Status</div></div><div class="card__body"><dl class="detail-list">${rows.map(([l, v, c]) => `<div class="detail-row"><dt>${l}</dt><dd style="color:${c}">${v}</dd></div>`).join("")}</dl></div></div></div>`;
+  },
+  exportCsv(direction) {
+    let list = [...state.passengers];
+    if (direction) list = list.filter((p) => p.direction === direction);
+    const header = ["ID","Nama Lengkap","No Paspor","Kebangsaan","Arah","Status","Blacklist","Petugas","Dibuat"].join(",");
+    const body = list.map((p) => [p.id, p.full_name, maskPassport(p.passport_number), p.nationality, p.direction, p.status, p.blacklist_hit ? "YA" : "TIDAK", p.agent_name || "", p.created_at].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob(["\ufeff" + header + "\n" + body], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "imigrasi_laporan_" + new Date().toISOString().slice(0, 10) + ".csv";
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
+    toast("Berkas CSV diunduh", "success");
+  },
+
+  auditPage() {
+    let list = [...state.audit];
+    if (state.ui.actionFilter) list = list.filter((a) => a.action.includes(state.ui.actionFilter.toUpperCase()));
+    const { rows, page, pages, total, from, to } = this.paginate(list);
+    return `<div class="page-header"><div><h1>Audit Log</h1><p>Jejak aktivitas seluruh pengguna</p></div></div>
+    <div class="toolbar"><input id="search-input" class="input" placeholder="Filter aksi (mis. LOGIN)…" value="${esc(state.ui.actionFilter)}" oninput="App.search(this.value,'actionFilter')" style="min-width:260px"></div>
+    <div class="card">${this.table(["ID","PENGGUNA","AKSI","TARGET","DETAIL","IP","WAKTU"], rows.map((a) => `<tr><td class="mono">#${a.id}</td><td>${esc(a.user_name || "Sistem")}</td><td class="mono" style="font-size:12px">${esc(a.action)}</td><td>${a.target_type ? esc(a.target_type) + (a.target_id ? " #" + a.target_id : "") : "—"}</td><td class="muted">${esc(a.detail || "—")}</td><td class="mono" style="font-size:12px">${esc(a.ip_address || "—")}</td><td>${fmtDateTime(a.created_at)}</td></tr>`), "Tidak ada aktivitas")}${this.pager(page, pages, total, from, to)}</div>`;
+  },
+
+  /* modal */
+  modal({ title, desc, body, footer, size }) {
+    document.getElementById("modal-root").innerHTML = `<div class="modal-overlay" onclick="if(event.target===this)App.closeModal()"><div class="modal modal--${size || "md"}" role="dialog" aria-modal="true"><div class="modal__header"><div>${title ? `<h2 class="modal__title">${title}</h2>` : ""}${desc ? `<p class="modal__desc">${desc}</p>` : ""}</div><button class="modal__close" onclick="App.closeModal()">×</button></div><div class="modal__body">${body}</div>${footer ? `<div class="modal__footer">${footer}</div>` : ""}</div></div>`;
+  },
+  confirmModal(title, html, onConfirm) {
+    this._confirm = onConfirm;
+    this.modal({ title, size: "sm", body: `<div class="callout callout--warning">${html}</div>`, footer: `<button class="btn btn--ghost" onclick="App.closeModal()">Batal</button><button class="btn btn--danger" onclick="App.runConfirm()">Konfirmasi</button>` });
+  },
+  runConfirm() { const fn = this._confirm; this.closeModal(); if (fn) fn(); },
+  closeModal() { document.getElementById("modal-root").innerHTML = ""; },
+};
+
+window.App = App;
+App.render();
+})();
+</script>
+</body>
+</html>
