@@ -77,6 +77,33 @@ notifikasi, audit log). Akan ada badge **MODE DEMO** di header.
 - Untuk build statis demo: `npm run build:mock`, lalu serve folder `dist/`
   (mis. `npx serve dist`). Mode demo **tidak** ikut pada build produksi biasa.
 
+## Deploy ke Vercel (demo statis)
+
+Vercel **tidak** cocok untuk backend (tanpa database persisten, tanpa SSE jangka
+panjang). Yang benar di-deploy ke Vercel adalah **UI statis**.
+
+Repo ini sudah menyiapkan `index.html` (demo mandiri) + `vercel.json` yang
+memaksa deploy **statis** saja (mengabaikan deteksi Python), sehingga URL Vercel
+langsung menampilkan aplikasi.
+
+Langkah:
+1. Commit & push `index.html` dan `vercel.json` ke GitHub.
+2. Di Vercel → Project → **Settings → General → Root Directory**: pastikan
+   diarahkan ke **root repo** (`.`) — **bukan** `backend`. Ini penyebab error
+   `{"error":{"code":"not_found",...}}` (Vercel menjalankan API backend, yang
+   tidak punya route `/`).
+3. **Framework Preset**: `Other` (tanpa build command). Build Command & Output
+   Directory dibiarkan kosong.
+4. **Redeploy**.
+
+Catatan: `vercel.json` berisi `"builds": [{ "src": "index.html",
+"use": "@vercel/static" }]`, jadi Vercel hanya men-deploy `index.html` secara
+statis — tanpa build, tanpa server.
+
+Ingin UI React asli (bukan demo)? Set Root Directory ke `frontend`, Framework
+`Vite`. Tapi aplikasi akan gagal memuat data karena tidak ada API/database —
+host backend terpisah (lihat [DEPLOY.md](DEPLOY.md)) dan set `VITE_API_BASE`.
+
 ## Produksi (deploy sendiri)
 
 Panduan manual lengkap: **[DEPLOY.md](DEPLOY.md)**. Intinya cukup membangun image
